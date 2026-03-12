@@ -1,6 +1,6 @@
 "use client";
 
-import type { DragEvent, HTMLAttributes } from "react";
+import type { DragEvent, LabelHTMLAttributes } from "react";
 import { useId, useState } from "react";
 
 import { MediaStackIllustration } from "@/components/ui/MediaStackIllustration";
@@ -8,7 +8,7 @@ import { cn } from "@/components/ui/utils";
 
 type DragDropState = "default" | "hovered" | "pressed";
 
-type Props = HTMLAttributes<HTMLDivElement> & {
+type Props = LabelHTMLAttributes<HTMLLabelElement> & {
   accept?: string;
   description?: string;
   helperText?: string;
