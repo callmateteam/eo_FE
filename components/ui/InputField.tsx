@@ -22,23 +22,45 @@ export function InputField({
   leadingIcon,
   ...props
 }: Props) {
+  const containerTone = cn(
+    fieldState === "default" &&
+      "border-border-subtle bg-[linear-gradient(90deg,_rgb(from_var(--color-gray-900)_r_g_b_/_1)_0%,_rgb(from_var(--color-gray-800)_r_g_b_/_1)_100%)]",
+    fieldState === "hovered" &&
+      "border-border-strong bg-[linear-gradient(90deg,_rgb(from_var(--color-gray-900)_r_g_b_/_1)_0%,_rgb(from_var(--color-gray-800)_r_g_b_/_1)_100%)]",
+    fieldState === "pressed" && "border-action-primary bg-[var(--color-gray-700)]",
+    fieldState === "error" && "border-feedback-error bg-[var(--color-gray-700)]"
+  );
+
+  const inputTone = cn(
+    "text-body-lg w-full border-0 bg-transparent outline-none",
+    fieldState === "default" && "text-text-tertiary placeholder:text-text-tertiary",
+    fieldState === "hovered" && "text-text-inverse placeholder:text-text-tertiary",
+    fieldState === "pressed" && "text-text-inverse placeholder:text-text-tertiary",
+    fieldState === "error" && "text-text-inverse placeholder:text-text-tertiary"
+  );
+
   return (
     <label className="flex w-full flex-col gap-2">
       {label ? <span className="text-label-sm text-text-secondary">{label}</span> : null}
       <span
         className={cn(
           "flex h-[60px] w-full items-center gap-3 rounded-xl border px-5 transition-colors",
-          fieldState === "default" && "border-border-subtle bg-[linear-gradient(90deg,_rgba(18,18,20,1)_0%,_rgba(30,30,34,1)_100%)]",
-          fieldState === "hovered" && "border-border-subtle bg-[linear-gradient(90deg,_rgba(18,18,20,1)_0%,_rgba(30,30,34,1)_100%)]",
-          fieldState === "pressed" && "border-action-primary bg-[var(--color-gray-500)]",
-          fieldState === "error" && "border-feedback-error bg-[var(--color-gray-500)]",
+          containerTone,
           className
         )}
       >
-        {leadingIcon ? <Icon className="size-5 text-text-tertiary" name={leadingIcon} /> : null}
+        {leadingIcon ? (
+          <Icon
+            className={cn(
+              "size-5",
+              fieldState === "default" ? "text-text-tertiary" : "text-text-inverse"
+            )}
+            name={leadingIcon}
+          />
+        ) : null}
         <input
           {...props}
-          className="text-display-md w-full border-0 bg-transparent text-text-inverse outline-none placeholder:text-text-tertiary"
+          className={inputTone}
         />
       </span>
       {fieldState === "error" && errorMessage ? (

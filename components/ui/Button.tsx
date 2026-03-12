@@ -20,9 +20,9 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "disabled"> & {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  tiny: "h-10 min-w-[140px] px-4",
-  sm: "h-12 min-w-[140px] px-4",
-  md: "h-[52px] min-w-[145px] px-4",
+  tiny: "h-10 min-w-35 px-4",
+  sm: "h-12 min-w-35 px-4",
+  md: "h-13 min-w-36.25 px-4",
 };
 
 const textClasses: Record<ButtonSize, string> = {
@@ -39,8 +39,8 @@ export function Button({
   children = "button",
   className,
   disabled,
-  iconAfter = "video",
-  iconBefore = "video",
+  iconAfter,
+  iconBefore,
   size = "md",
   state = "default",
   variant = "filled",
@@ -53,18 +53,19 @@ export function Button({
   const colorClasses = isFilled
     ? cn(
         visualState === "default" && "bg-action-primary text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
-        visualState === "hovered" && "bg-[color:var(--action-primary-hover)] text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
-        visualState === "pressed" && "bg-action-secondary text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
-        visualState === "disabled" && "bg-[var(--color-gray-700)] text-text-tertiary"
+        visualState === "hovered" && "bg-action-primary-hover text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
+        visualState === "pressed" && "bg-action-primary-pressed text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
+        visualState === "disabled" && "bg-gray-700 text-text-tertiary"
       )
     : cn(
-        "border bg-[var(--color-gray-900)]",
+        "border bg-gray-900",
         visualState === "default" && "border-action-primary text-text-inverse",
-        visualState === "hovered" && "border-[color:var(--action-primary-hover)] bg-[var(--color-gray-900)] text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
-        visualState === "pressed" && "border-action-secondary bg-[var(--color-gray-900)] text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
+        visualState === "hovered" && "border-action-primary-hover bg-gray-900 text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
+        visualState === "pressed" && "border-action-primary-pressed bg-gray-900 text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
         isError && "border-feedback-error text-feedback-error"
       );
 
+  const hasIcons = Boolean(iconBefore || iconAfter);
   const iconTone = cn(
     "size-6",
     isFilled && visualState !== "disabled" && "text-text-inverse",
@@ -86,7 +87,8 @@ export function Button({
     <button
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full transition-all",
+        "inline-flex items-center justify-center rounded-full transition-all",
+        hasIcons ? "gap-2" : "gap-0",
         sizeClasses[size],
         colorClasses,
         disabled && "cursor-not-allowed",

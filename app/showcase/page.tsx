@@ -33,13 +33,13 @@ export default function ShowcasePage() {
   return (
     <main className="min-h-screen bg-surface-canvas px-6 py-10">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
-        <section className="overflow-hidden rounded-[32px] border border-border-subtle bg-surface-elevated p-8 shadow-[0_24px_80px_rgba(18,18,20,0.08)]">
+        <section className="overflow-hidden rounded-4xl border border-border-subtle bg-surface-elevated p-8 shadow-[0_24px_80px_rgba(18,18,20,0.08)]">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl space-y-3">
               <p className="text-label-sm text-action-secondary">
                 Common Components Showcase
               </p>
-              <h1 className="text-display-xl text-text-primary">
+              <h1 className="text-display-sm text-text-primary">
                 Image matched component review
               </h1>
               <p className="text-body-lg text-text-secondary">
@@ -57,7 +57,7 @@ export default function ShowcasePage() {
         <section className="grid gap-8 lg:grid-cols-[1.4fr_0.8fr]">
           <article className="rounded-[28px] border border-border-subtle bg-surface-elevated p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-display-md text-text-primary">Buttons</h2>
+              <h2 className="text-heading-lg text-text-primary">Buttons</h2>
               <p className="text-body-md text-text-secondary">
                 Filled, outlined, error and disabled states.
               </p>
@@ -97,7 +97,9 @@ export default function ShowcasePage() {
                 </div>
               </div>
               <div className="space-y-3">
-                <p className="text-label-sm text-text-tertiary">Tiny variants</p>
+                <p className="text-label-sm text-text-tertiary">
+                  Tiny variants
+                </p>
                 <div className="flex flex-wrap gap-4 bg-black p-4">
                   <Button size="tiny" variant="outlined">
                     button
@@ -118,7 +120,7 @@ export default function ShowcasePage() {
 
           <article className="rounded-[28px] border border-border-subtle bg-surface-elevated p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-display-md text-text-primary">Navigation</h2>
+              <h2 className="text-heading-lg text-text-primary">Navigation</h2>
               <p className="text-body-md text-text-secondary">
                 Navi and navigation rail states.
               </p>
@@ -141,7 +143,7 @@ export default function ShowcasePage() {
         <section className="grid gap-8 lg:grid-cols-[1.1fr_1.1fr_0.8fr]">
           <article className="rounded-[28px] border border-border-subtle bg-surface-elevated p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-display-md text-text-primary">Chips</h2>
+              <h2 className="text-heading-lg text-text-primary">Chips</h2>
               <p className="text-body-md text-text-secondary">
                 Filter and status selection.
               </p>
@@ -155,7 +157,9 @@ export default function ShowcasePage() {
 
           <article className="rounded-[28px] border border-border-subtle bg-surface-elevated p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-display-md text-text-primary">Input Fields</h2>
+              <h2 className="text-heading-lg text-text-primary">
+                Input Fields
+              </h2>
               <p className="text-body-md text-text-secondary">
                 Default, focus and error surfaces.
               </p>
@@ -170,7 +174,7 @@ export default function ShowcasePage() {
 
           <article className="rounded-[28px] border border-border-subtle bg-surface-elevated p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-display-md text-text-primary">Stepper</h2>
+              <h2 className="text-heading-lg text-text-primary">Stepper</h2>
               <p className="text-body-md text-text-secondary">
                 Progress indicator and loading.
               </p>
@@ -190,7 +194,7 @@ export default function ShowcasePage() {
         <section className="grid gap-8 lg:grid-cols-[1fr_1fr]">
           <article className="rounded-[28px] border border-border-subtle bg-surface-elevated p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-display-md text-text-primary">Icons</h2>
+              <h2 className="text-heading-lg text-text-primary">Icons</h2>
               <p className="text-body-md text-text-secondary">
                 Temporary SVG redraws until original vectors arrive.
               </p>
@@ -212,28 +216,22 @@ export default function ShowcasePage() {
 
           <article className="rounded-[28px] border border-border-subtle bg-surface-elevated p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-display-md text-text-primary">
-                Drag & Drop
-              </h2>
+              <h2 className="text-heading-lg text-text-primary">Drag & Drop</h2>
               <p className="text-body-md text-text-secondary">
-                Default, hovered and pressed states.
+                Click or drag files into the card.
               </p>
             </div>
-            <div className="grid gap-6">
-              <DragDropCard state="default" />
-              <DragDropCard state="hovered" />
-              <DragDropCard state="pressed" />
-            </div>
+            <DragDropCard />
           </article>
         </section>
 
         <section className="rounded-[28px] border border-border-subtle bg-surface-elevated p-8">
           <div className="mb-6 space-y-2">
-            <h2 className="text-display-md text-text-primary">
+            <h2 className="text-heading-lg text-text-primary">
               Interaction Asset
             </h2>
             <p className="text-body-md text-text-secondary">
-              Current paper icon reconstruction for the drag & drop card.
+              Current drag & drop illustration asset.
             </p>
           </div>
           <div className="bg-black p-4">

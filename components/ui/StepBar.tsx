@@ -24,7 +24,7 @@ export function StepBar({ className, steps }: Props) {
               <span
                 className={cn(
                   "text-label-sm text-center",
-                  current ? "text-action-primary" : "text-[var(--color-gray-500)]"
+                  current ? "text-action-primary" : "text-text-secondary"
                 )}
               >
                 {step.label}
@@ -32,7 +32,7 @@ export function StepBar({ className, steps }: Props) {
               <span
                 className={cn(
                   "h-3 rounded-full",
-                  current ? "bg-action-primary" : "bg-[var(--color-gray-500)]"
+                  current ? "bg-action-primary" : "bg-text-secondary"
                 )}
               />
             </div>

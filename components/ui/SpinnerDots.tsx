@@ -2,40 +2,27 @@ import { cn } from "@/components/ui/utils";
 
 type Props = {
   className?: string;
-  count?: number;
 };
 
-export function SpinnerDots({ className, count = 9 }: Props) {
+export function SpinnerDots({ className }: Props) {
   return (
-    <div className={cn("inline-flex items-center gap-10", className)}>
-      {Array.from({ length: count }).map((_, index) => (
-        <span
-          className="relative size-8 animate-spin"
-          key={index}
-          style={{
-            animationDelay: `${index * 100}ms`,
-            animationDuration: "1s",
-          }}
-        >
-          {Array.from({ length: 8 }).map((_, segmentIndex) => {
-            const active = segmentIndex === index % 8;
-
-            return (
-              <span
-                className={cn(
-                  "absolute left-1/2 top-1/2 h-2 w-0.5 -translate-x-1/2 rounded-full",
-                  active ? "bg-action-primary" : "bg-[var(--color-gray-700)]"
-                )}
-                key={segmentIndex}
-                style={{
-                  transform: `translate(-50%, -50%) rotate(${segmentIndex * 45}deg) translateY(-11px)`,
-                  transformOrigin: "center 11px",
-                }}
-              />
-            );
-          })}
-        </span>
-      ))}
+    <div className={cn("inline-flex items-center justify-center", className)}>
+      <span className="relative size-8 animate-spin" style={{ animationDuration: "900ms" }}>
+        {Array.from({ length: 8 }).map((_, index) => (
+          <span
+            className={cn(
+              "absolute left-1/2 top-1/2 h-2 w-0.5 -translate-x-1/2 rounded-full",
+              index === 0 ? "bg-action-primary" : "bg-[var(--color-gray-700)]"
+            )}
+            key={index}
+            style={{
+              opacity: 1 - index * 0.12,
+              transform: `translate(-50%, -50%) rotate(${index * 45}deg) translateY(-11px)`,
+              transformOrigin: "center 11px",
+            }}
+          />
+        ))}
+      </span>
     </div>
   );
 }
