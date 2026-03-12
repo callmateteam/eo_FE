@@ -30,10 +30,10 @@ export function NavigationRail({
       />
       <span
         className={cn(
-          "text-label-sm min-w-full text-center",
-          state === "default" && "text-[var(--color-gray-100)]",
-          state === "hovered" && "text-text-inverse",
-          state === "clicked" && "text-action-primary"
+          "text-caption-m min-w-full text-center",
+          state === "default" && "text-gray-50",
+          state === "hovered" && "text-gray-50",
+          state === "clicked" && "text-primary-500"
         )}
       >
         {label}

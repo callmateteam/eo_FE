@@ -22,10 +22,10 @@ export function Chip({
     <button
       {...props}
       className={cn(
-        "text-display-md inline-flex h-11 min-w-[57px] items-center justify-center rounded-full px-5 transition-colors",
-        state === "default" && "bg-transparent text-text-primary",
-        state === "hovered" && "bg-transparent text-text-inverse",
-        state === "clicked" && "bg-[var(--color-gray-500)] text-text-inverse",
+        "text-label-l inline-flex h-11 min-w-[57px] items-center justify-center rounded-full px-5 transition-colors",
+        state === "default" && "bg-transparent text-gray-50",
+        state === "hovered" && "bg-transparent text-gray-50",
+        state === "clicked" && "bg-gray-100 text-gray-50",
         className
       )}
       type={type}
