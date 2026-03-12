@@ -24,24 +24,24 @@ export function InputField({
 }: Props) {
   const containerTone = cn(
     fieldState === "default" &&
-      "border-border-subtle bg-[linear-gradient(90deg,_rgb(from_var(--color-gray-900)_r_g_b_/_1)_0%,_rgb(from_var(--color-gray-800)_r_g_b_/_1)_100%)]",
+      "border-black/10 bg-[linear-gradient(90deg,#121214_0%,#1e1e22_100%)]",
     fieldState === "hovered" &&
-      "border-border-strong bg-[linear-gradient(90deg,_rgb(from_var(--color-gray-900)_r_g_b_/_1)_0%,_rgb(from_var(--color-gray-800)_r_g_b_/_1)_100%)]",
-    fieldState === "pressed" && "border-action-primary bg-[var(--color-gray-700)]",
-    fieldState === "error" && "border-feedback-error bg-[var(--color-gray-700)]"
+      "border-black/15 bg-[linear-gradient(90deg,#121214_0%,#1e1e22_100%)]",
+    fieldState === "pressed" && "border-primary-500 bg-gray-700",
+    fieldState === "error" && "border-error-500 bg-gray-700"
   );
 
   const inputTone = cn(
-    "text-body-lg w-full border-0 bg-transparent outline-none",
-    fieldState === "default" && "text-text-tertiary placeholder:text-text-tertiary",
-    fieldState === "hovered" && "text-text-inverse placeholder:text-text-tertiary",
-    fieldState === "pressed" && "text-text-inverse placeholder:text-text-tertiary",
-    fieldState === "error" && "text-text-inverse placeholder:text-text-tertiary"
+    "text-body-l w-full border-0 bg-transparent outline-none",
+    fieldState === "default" && "text-gray-300 placeholder:text-gray-300",
+    fieldState === "hovered" && "text-gray-50 placeholder:text-gray-300",
+    fieldState === "pressed" && "text-gray-50 placeholder:text-gray-300",
+    fieldState === "error" && "text-gray-50 placeholder:text-gray-300"
   );
 
   return (
     <label className="flex w-full flex-col gap-2">
-      {label ? <span className="text-label-sm text-text-secondary">{label}</span> : null}
+      {label ? <span className="text-caption-m text-gray-500">{label}</span> : null}
       <span
         className={cn(
           "flex h-[60px] w-full items-center gap-3 rounded-xl border px-5 transition-colors",
@@ -53,7 +53,7 @@ export function InputField({
           <Icon
             className={cn(
               "size-5",
-              fieldState === "default" ? "text-text-tertiary" : "text-text-inverse"
+              fieldState === "default" ? "text-gray-300" : "text-gray-50"
             )}
             name={leadingIcon}
           />
@@ -64,7 +64,7 @@ export function InputField({
         />
       </span>
       {fieldState === "error" && errorMessage ? (
-        <span className="text-caption-sm text-feedback-error">{errorMessage}</span>
+        <span className="text-caption-s text-error-500">{errorMessage}</span>
       ) : null}
     </label>
   );

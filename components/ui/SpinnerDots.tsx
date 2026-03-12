@@ -12,7 +12,7 @@ export function SpinnerDots({ className }: Props) {
           <span
             className={cn(
               "absolute left-1/2 top-1/2 h-2 w-0.5 -translate-x-1/2 rounded-full",
-              index === 0 ? "bg-action-primary" : "bg-[var(--color-gray-700)]"
+              index === 0 ? "bg-primary-500" : "bg-gray-700"
             )}
             key={index}
             style={{

@@ -41,8 +41,8 @@ function LandingButton({
       className={[
         "min-w-0 rounded-full px-4 shadow-[0_1px_8px_4px_rgba(186,78,255,0.13)]",
         outlined
-          ? "h-12 border border-primary-500 bg-gray-800 text-sm leading-3.5 font-semibold tracking-[0.01em] text-text-inverse"
-          : "h-13 bg-primary-500 text-base leading-7 font-medium text-text-inverse",
+          ? "h-12 border border-primary-500 bg-gray-800 text-label-l text-gray-50"
+          : "h-13 bg-primary-500 text-body-l text-gray-50",
         className,
       ].join(" ")}
       iconAfter={undefined}
@@ -57,7 +57,7 @@ function LandingButton({
 
 export default function Home() {
   return (
-    <main className="bg-gray-900 text-text-inverse">
+    <main className="bg-gray-900 text-gray-50">
       <header className="relative z-20 h-20 bg-[rgba(44,44,49,0.88)]">
         <div className="mx-auto flex h-full max-w-360 items-center justify-between px-[clamp(32px,5.56vw,80px)]">
           <div className="flex size-12 items-center justify-center rounded-xl bg-[linear-gradient(220.79deg,#ba4eff_7.66%,#6954f9_64.14%)]">
@@ -87,7 +87,7 @@ export default function Home() {
                 <p className="m-0 bg-[linear-gradient(90deg,#ba4eff_0%,#6954f9_100%)] bg-clip-text text-[clamp(32px,2.78vw,40px)] leading-[1.2] font-semibold text-transparent">
                   Easy &amp; Only
                 </p>
-                <h1 className="m-0 text-display-lg  tracking-[-0.01em] text-text-inverse">
+                <h1 className="m-0 text-display-lg text-gray-50">
                   <span className="block">입문자부터</span>
                   <span className="block">전문가까지</span>
                   <span className="block">쉽게 영상을 제작하세요</span>
@@ -98,7 +98,7 @@ export default function Home() {
 
             <div className="relative h-[min(602px,41.8vw)] min-h-107.5 w-[min(397px,27.57vw)] min-w-75 rounded-8 border border-gray-700 bg-gray-800 shadow-[0_1px_36px_8px_rgba(186,78,255,0.08)]">
               <div className="absolute left-1/2 top-1/2 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[rgba(18,18,20,0.7)]">
-                <Icon className="size-9 text-text-inverse" name="play-line" />
+                <Icon className="size-9 text-gray-50" name="play-line" />
               </div>
             </div>
           </div>
@@ -110,13 +110,13 @@ export default function Home() {
 
         <div className="relative mx-auto max-w-360 px-[clamp(32px,5.56vw,80px)]">
           <div className="mx-auto flex max-w-207.25 flex-col items-center gap-3 text-center">
-            <h2 className="m-0 text-[clamp(36px,3.33vw,48px)] leading-[1.25] font-bold text-text-inverse">
+            <h2 className="m-0 text-display-m text-gray-50">
               <span>AI가 만드는 </span>
               <span className="bg-[linear-gradient(90deg,#6954f9_0%,#ba4eff_100%)] bg-clip-text text-transparent">
                 새로운 영상 제작
               </span>
             </h2>
-            <p className="m-0 text-[clamp(20px,2.22vw,32px)] leading-[1.5] font-bold tracking-[-0.02em] text-text-inverse">
+            <p className="m-0 text-[clamp(20px,2.22vw,32px)] leading-[1.5] font-bold tracking-[-0.02em] text-gray-50">
               복잡한 영상 편집 없이, AI와 함께 빠르고 트렌디한 영상을 제작하세요
             </p>
           </div>
@@ -147,7 +147,7 @@ export default function Home() {
                     </div>
                     <p
                       className={`m-0 text-2xl leading-9 font-medium tracking-[-0.01em] ${
-                        item.active ? "text-text-inverse" : "text-text-tertiary"
+                        item.active ? "text-gray-50" : "text-gray-300"
                       }`}
                     >
                       {item.label}
@@ -175,11 +175,9 @@ export default function Home() {
                 ))}
               </div>
 
-              <div className="mx-auto mt-10 flex max-w-108.75 flex-col items-center gap-4 text-center text-text-inverse">
-                <h3 className="m-0 text-8 leading-12 font-bold tracking-[-0.02em]">
-                  나만의 캐릭터 생성
-                </h3>
-                <p className="m-0 text-lg leading-7 font-semibold tracking-[-0.01em]">
+              <div className="mx-auto mt-10 flex max-w-108.75 flex-col items-center gap-4 text-center text-gray-50">
+                <h3 className="m-0 text-headline-l">나만의 캐릭터 생성</h3>
+                <p className="m-0 text-title-l">
                   원하는 캐릭터를 스타일화하거나 나만의 AI 캐릭터를 생성해요.
                   <br />
                   일관된 스타일의 캐릭터가 영상 전체에 등장합니다.
@@ -192,7 +190,7 @@ export default function Home() {
 
       <section className="relative flex min-h-82 items-start justify-center bg-gray-900 px-8 pb-22 pt-20 text-center">
         <div className="flex flex-col items-center gap-15">
-          <h2 className="m-0 text-8 leading-12 font-bold tracking-[-0.02em] text-text-inverse">
+          <h2 className="m-0 text-headline-l text-gray-50">
             지금 시작하고, 첫 영상을 무료로 만들어보세요
           </h2>
           <LandingButton className="w-fit">지금 바로 만들기</LandingButton>

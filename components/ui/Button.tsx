@@ -26,9 +26,9 @@ const sizeClasses: Record<ButtonSize, string> = {
 };
 
 const textClasses: Record<ButtonSize, string> = {
-  tiny: "text-label-md",
-  sm: "text-label-md",
-  md: "text-body-lg",
+  tiny: "text-label-l",
+  sm: "text-label-l",
+  md: "text-body-l",
 };
 
 function getVisualState(disabled: boolean | undefined, state: ButtonState) {
@@ -52,35 +52,35 @@ export function Button({
 
   const colorClasses = isFilled
     ? cn(
-        visualState === "default" && "bg-action-primary text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
-        visualState === "hovered" && "bg-action-primary-hover text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
-        visualState === "pressed" && "bg-action-primary-pressed text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
-        visualState === "disabled" && "bg-gray-700 text-text-tertiary"
+        visualState === "default" && "bg-primary-500 text-gray-50 shadow-[0_1px_8px_4px_rgba(186,78,255,0.13)]",
+        visualState === "hovered" && "bg-primary-600 text-gray-50 shadow-[0_1px_8px_4px_rgba(186,78,255,0.13)]",
+        visualState === "pressed" && "bg-primary-700 text-gray-50 shadow-[0_1px_8px_4px_rgba(186,78,255,0.13)]",
+        visualState === "disabled" && "bg-gray-700 text-gray-300"
       )
     : cn(
         "border bg-gray-900",
-        visualState === "default" && "border-action-primary text-text-inverse",
-        visualState === "hovered" && "border-action-primary-hover bg-gray-900 text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
-        visualState === "pressed" && "border-action-primary-pressed bg-gray-900 text-text-inverse shadow-[0_1px_8px_4px_rgb(from_var(--action-primary)_r_g_b_/_0.13)]",
-        isError && "border-feedback-error text-feedback-error"
+        visualState === "default" && "border-primary-500 text-gray-50",
+        visualState === "hovered" && "border-primary-600 bg-gray-900 text-gray-50 shadow-[0_1px_8px_4px_rgba(186,78,255,0.13)]",
+        visualState === "pressed" && "border-primary-700 bg-gray-900 text-gray-50 shadow-[0_1px_8px_4px_rgba(186,78,255,0.13)]",
+        isError && "border-error-500 text-error-500"
       );
 
   const hasIcons = Boolean(iconBefore || iconAfter);
   const iconTone = cn(
     "size-6",
-    isFilled && visualState !== "disabled" && "text-text-inverse",
-    isFilled && visualState === "disabled" && "text-text-tertiary",
-    !isFilled && !isError && "text-text-inverse",
-    isError && "text-feedback-error"
+    isFilled && visualState !== "disabled" && "text-gray-50",
+    isFilled && visualState === "disabled" && "text-gray-300",
+    !isFilled && !isError && "text-gray-50",
+    isError && "text-error-500"
   );
 
   const textTone = cn(
     textClasses[size],
     "whitespace-nowrap",
-    isFilled && visualState !== "disabled" && "text-text-inverse",
-    isFilled && visualState === "disabled" && "text-text-tertiary",
-    !isFilled && !isError && "text-text-inverse",
-    isError && "text-feedback-error"
+    isFilled && visualState !== "disabled" && "text-gray-50",
+    isFilled && visualState === "disabled" && "text-gray-300",
+    !isFilled && !isError && "text-gray-50",
+    isError && "text-error-500"
   );
 
   return (

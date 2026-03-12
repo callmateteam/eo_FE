@@ -23,8 +23,8 @@ export function StepBar({ className, steps }: Props) {
             <div className="flex flex-1 flex-col gap-1.5">
               <span
                 className={cn(
-                  "text-label-sm text-center",
-                  current ? "text-action-primary" : "text-text-secondary"
+                  "text-caption-m text-center",
+                  current ? "text-primary-500" : "text-gray-500"
                 )}
               >
                 {step.label}
@@ -32,7 +32,7 @@ export function StepBar({ className, steps }: Props) {
               <span
                 className={cn(
                   "h-3 rounded-full",
-                  current ? "bg-action-primary" : "bg-text-secondary"
+                  current ? "bg-primary-500" : "bg-gray-500"
                 )}
               />
             </div>

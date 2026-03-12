@@ -24,11 +24,11 @@ export function Navi({
       {...props}
       className={cn(
         "inline-flex size-10 items-center justify-center rounded-xl p-2 transition-colors",
-        state === "default" && "bg-transparent text-text-inverse",
+        state === "default" && "bg-transparent text-gray-50",
         state === "hovered" &&
-          "bg-[radial-gradient(circle_at_center,_rgb(from_var(--action-primary-hover)_r_g_b_/_1)_0%,_rgb(from_var(--action-primary-pressed)_r_g_b_/_1)_100%)] text-text-inverse",
+          "bg-[radial-gradient(circle_at_center,#8a3ed9_0%,#6b2bb1_100%)] text-gray-50",
         state === "clicked" &&
-          "bg-[radial-gradient(circle_at_center,_rgb(from_var(--action-primary-hover)_r_g_b_/_1)_0%,_rgb(from_var(--action-primary)_r_g_b_/_1)_100%)] text-text-inverse",
+          "bg-[radial-gradient(circle_at_center,#8a3ed9_0%,#ba4eff_100%)] text-gray-50",
         className
       )}
       type={type}

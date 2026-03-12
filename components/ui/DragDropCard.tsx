@@ -60,11 +60,11 @@ export function DragDropCard({
       className={cn(
         "flex min-h-[640px] w-full cursor-pointer flex-col items-center justify-center rounded-[28px] border p-8 text-center transition-colors",
         interactiveState === "default" &&
-          "border-border-subtle bg-[linear-gradient(180deg,_rgb(from_var(--color-gray-900)_r_g_b_/_1)_0%,_rgb(from_var(--color-gray-800)_r_g_b_/_1)_100%)]",
+          "border-black/10 bg-[linear-gradient(180deg,#121214_0%,#1e1e22_100%)]",
         interactiveState === "hovered" &&
-          "border-action-primary bg-[var(--color-gray-700)]",
+          "border-primary-500 bg-gray-700",
         interactiveState === "pressed" &&
-          "border-action-primary bg-[var(--color-gray-700)] shadow-[0_0_0_1px_var(--action-primary)]",
+          "border-primary-500 bg-gray-700 shadow-[0_0_0_1px_#ba4eff]",
         className
       )}
       onDragEnter={() => setIsDragging(true)}
@@ -83,17 +83,17 @@ export function DragDropCard({
         type="file"
       />
       <MediaStackIllustration className="mb-10" />
-      <h3 className="text-heading-xl text-text-inverse">{title}</h3>
-      <p className="mt-4 text-label-md text-text-tertiary">{helperText}</p>
-      <p className="mt-6 max-w-[520px] text-body-md text-text-tertiary">
+      <h3 className="text-headline-l text-gray-50">{title}</h3>
+      <p className="mt-4 text-label-l text-gray-300">{helperText}</p>
+      <p className="mt-6 max-w-[520px] text-body-m text-gray-300">
         {description}
       </p>
       <div className="mt-8 flex flex-col items-center gap-3">
-        <span className="text-label-md text-action-primary">
+        <span className="text-label-l text-primary-500">
           클릭하거나 파일을 여기로 드래그하세요
         </span>
         {files.length > 0 ? (
-          <ul className="flex flex-col gap-2 text-body-md text-text-inverse">
+          <ul className="flex flex-col gap-2 text-body-m text-gray-50">
             {files.map((file) => (
               <li key={`${file.name}-${file.size}`}>{file.name}</li>
             ))}
