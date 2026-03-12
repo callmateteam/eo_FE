@@ -1,26 +1,224 @@
+@import "pretendard/dist/web/variable/pretendardvariable.css";
 @import "tailwindcss";
 
+@theme {
+  --color-white: #ffffff;
+  /* Grayscale */
+  --color-gray-50: #f5f5f5;
+  --color-gray-100: #e5e5ea;
+  --color-gray-300: #8e8e93;
+  --color-gray-500: #4c4c50;
+  --color-gray-700: #2c2c31;
+  --color-gray-800: #1e1e22;
+  --color-gray-900: #121214;
+  /* Primary */
+  --color-primary-500: #ba4eff;
+  --color-primary-600: #8a3ed9;
+  --color-primary-700: #6b2bb1;
+  /* Seconary */
+  --color-secondary-500: #6954f9;
+  /* Warning */
+  --color-warning-500: #ffd600;
+  /* Error */
+  --color-error-500: #ff5252;
+  /* Success */
+  --color-success-500: #00e676;
+  /* gradient */
+  --gradient-brand: linear-gradient(135deg, #6954f9 0%, #ba4eff 100%);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Semantic tokens */
+  --background: var(--color-white);
+  --foreground: var(--color-gray-900);
+
+  --font-family-sans:
+    "Pretendard Variable",
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    Roboto,
+    "Helvetica Neue",
+    "Segoe UI",
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    "Malgun Gothic",
+    sans-serif;
+  --font-family-mono:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    Menlo,
+    Courier,
+    monospace;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --surface-canvas: var(--color-gray-50);
+  --surface-elevated: var(--color-white);
+  --surface-muted: var(--color-gray-100);
+
+  --text-primary: var(--color-gray-900);
+  --text-secondary: var(--color-gray-500);
+  --text-tertiary: var(--color-gray-300);
+  --text-inverse: var(--color-white);
+
+  --border-subtle: rgb(from var(--color-gray-900) r g b / 0.08);
+  --border-strong: rgb(from var(--color-gray-900) r g b / 0.16);
+
+  --action-primary: var(--color-primary-500);
+  --action-primary-hover: var(--color-primary-600);
+  --action-primary-pressed: var(--color-primary-700);
+  --action-secondary: var(--color-secondary-500);
+
+  --feedback-warning: var(--color-warning-500);
+  --feedback-error: var(--color-error-500);
+  --feedback-success: var(--color-success-500);
+
+  --gradient-accent: var(--gradient-brand);
+
+  /* Typography tokens from Figma font section (node 119:3200) */
+  --text-display-xl-size: 2rem;
+  --text-display-xl-line-height: 3rem;
+  --text-display-xl-letter-spacing: -0.02em;
+  --text-display-xl-weight: var(--font-weight-bold);
+
+  --text-display-lg-size: 1.5rem;
+  --text-display-lg-line-height: 2.25rem;
+  --text-display-lg-letter-spacing: -0.01em;
+  --text-display-lg-weight: var(--font-weight-bold);
+
+  --text-display-md-size: 1.125rem;
+  --text-display-md-line-height: 1.75rem;
+  --text-display-md-letter-spacing: -0.01em;
+  --text-display-md-weight: var(--font-weight-semibold);
+
+  --text-body-lg-size: 1rem;
+  --text-body-lg-line-height: 1.75rem;
+  --text-body-lg-letter-spacing: 0;
+  --text-body-lg-weight: var(--font-weight-medium);
+
+  --text-body-md-size: 0.875rem;
+  --text-body-md-line-height: 1.5rem;
+  --text-body-md-letter-spacing: 0;
+  --text-body-md-weight: var(--font-weight-regular);
+
+  --text-label-md-size: 0.875rem;
+  --text-label-md-line-height: 0.875rem;
+  --text-label-md-letter-spacing: 0.01em;
+  --text-label-md-weight: var(--font-weight-semibold);
+
+  --text-label-sm-size: 0.875rem;
+  --text-label-sm-line-height: 0.875rem;
+  --text-label-sm-letter-spacing: 0.01em;
+  --text-label-sm-weight: var(--font-weight-medium);
+
+  --text-caption-sm-size: 0.75rem;
+  --text-caption-sm-line-height: 1rem;
+  --text-caption-sm-letter-spacing: 0.01em;
+  --text-caption-sm-weight: var(--font-weight-regular);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface-canvas: var(--surface-canvas);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-muted: var(--surface-muted);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-inverse: var(--text-inverse);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-action-primary: var(--action-primary);
+  --color-action-primary-hover: var(--action-primary-hover);
+  --color-action-primary-pressed: var(--action-primary-pressed);
+  --color-action-secondary: var(--action-secondary);
+  --color-feedback-warning: var(--feedback-warning);
+  --color-feedback-error: var(--feedback-error);
+  --color-feedback-success: var(--feedback-success);
+  --font-sans: var(--font-family-sans);
+  --font-mono: var(--font-family-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--surface-canvas);
 }
 
 body {
-  background: var(--background);
+  margin: 0;
+  background:
+    radial-gradient(
+      circle at top,
+      rgb(from var(--color-secondary-500) r g b / 0.12),
+      transparent 34%
+    ),
+    var(--surface-canvas);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-family-sans);
+}
+
+@utility text-display-xl {
+  font-size: var(--text-display-xl-size);
+  line-height: var(--text-display-xl-line-height);
+  letter-spacing: var(--text-display-xl-letter-spacing);
+  font-weight: var(--text-display-xl-weight);
+}
+
+@utility text-display-lg {
+  font-size: var(--text-display-lg-size);
+  line-height: var(--text-display-lg-line-height);
+  letter-spacing: var(--text-display-lg-letter-spacing);
+  font-weight: var(--text-display-lg-weight);
+}
+
+@utility text-display-md {
+  font-size: var(--text-display-md-size);
+  line-height: var(--text-display-md-line-height);
+  letter-spacing: var(--text-display-md-letter-spacing);
+  font-weight: var(--text-display-md-weight);
+}
+
+@utility text-body-lg {
+  font-size: var(--text-body-lg-size);
+  line-height: var(--text-body-lg-line-height);
+  letter-spacing: var(--text-body-lg-letter-spacing);
+  font-weight: var(--text-body-lg-weight);
+}
+
+@utility text-body-md {
+  font-size: var(--text-body-md-size);
+  line-height: var(--text-body-md-line-height);
+  letter-spacing: var(--text-body-md-letter-spacing);
+  font-weight: var(--text-body-md-weight);
+}
+
+@utility text-label-md {
+  font-size: var(--text-label-md-size);
+  line-height: var(--text-label-md-line-height);
+  letter-spacing: var(--text-label-md-letter-spacing);
+  font-weight: var(--text-label-md-weight);
+}
+
+@utility text-label-sm {
+  font-size: var(--text-label-sm-size);
+  line-height: var(--text-label-sm-line-height);
+  letter-spacing: var(--text-label-sm-letter-spacing);
+  font-weight: var(--text-label-sm-weight);
+}
+
+@utility text-caption-sm {
+  font-size: var(--text-caption-sm-size);
+  line-height: var(--text-caption-sm-line-height);
+  letter-spacing: var(--text-caption-sm-letter-spacing);
+  font-weight: var(--text-caption-sm-weight);
 }
