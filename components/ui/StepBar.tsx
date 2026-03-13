@@ -23,7 +23,7 @@ export function StepBar({ className, steps }: Props) {
             <div className="flex flex-1 flex-col gap-1.5">
               <span
                 className={cn(
-                  "text-caption-m text-center",
+                  "text-caption-md text-center",
                   current ? "text-primary-500" : "text-gray-500"
                 )}
               >

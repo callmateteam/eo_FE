@@ -26,9 +26,9 @@ const sizeClasses: Record<ButtonSize, string> = {
 };
 
 const textClasses: Record<ButtonSize, string> = {
-  tiny: "text-label-l",
-  sm: "text-label-l",
-  md: "text-body-l",
+  tiny: "text-label-md",
+  sm: "text-label-md",
+  md: "text-body-lg",
 };
 
 function getVisualState(disabled: boolean | undefined, state: ButtonState) {

@@ -22,7 +22,7 @@ export function Chip({
     <button
       {...props}
       className={cn(
-        "text-label-l inline-flex h-11 min-w-[57px] items-center justify-center rounded-full px-5 transition-colors",
+        "text-label-md inline-flex h-11 min-w-[57px] items-center justify-center rounded-full px-5 transition-colors",
         state === "default" && "bg-transparent text-gray-50",
         state === "hovered" && "bg-transparent text-gray-50",
         state === "clicked" && "bg-gray-100 text-gray-50",
