@@ -52,88 +52,80 @@
    Custom Typography Utilities
    ========================= */
 
-@utility text-display-l {
-  font-size: 3rem;
-  line-height: 3.75rem;
+@utility text-display-lg {
+  font-size: 68px;
+  line-height: 80px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: -1%;
 }
 
-@utility text-display-m {
-  font-size: 2.5rem;
-  line-height: 3rem;
+@utility text-display-md {
+  font-size: 48px;
+  line-height: 60px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+@utility text-display-sm {
+  font-size: 40px;
+  line-height: 48px;
   font-weight: 600;
   letter-spacing: 0;
 }
 
-@utility text-headline-l {
-  font-size: 2rem;
-  line-height: 3rem;
+@utility text-heading-xl {
+  font-size: 32px;
+  line-height: 48px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -2%;
 }
 
-@utility text-headline-m {
-  font-size: 1.5rem;
-  line-height: 2.25rem;
+@utility text-heading-lg {
+  font-size: 24px;
+  line-height: 36px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -1%;
 }
 
-@utility text-title-l {
-  font-size: 1.125rem;
-  line-height: 1.75rem;
+@utility text-heading-md {
+  font-size: 18px;
+  line-height: 28px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -1%;
 }
 
-@utility text-title-m {
-  font-size: 1rem;
-  line-height: 1.75rem;
+@utility text-body-lg {
+  font-size: 16px;
+  line-height: 28px;
   font-weight: 500;
   letter-spacing: 0;
 }
 
-@utility text-title-s {
-  font-size: 0.875rem;
-  line-height: 1.5rem;
+@utility text-body-md {
+  font-size: 14px;
+  line-height: 24px;
   font-weight: 400;
   letter-spacing: 0;
 }
 
-@utility text-body-l {
-  font-size: 1rem;
-  line-height: 1.75rem;
-  font-weight: 500;
-  letter-spacing: 0;
-}
-
-@utility text-body-m {
-  font-size: 0.875rem;
-  line-height: 1.5rem;
-  font-weight: 400;
-  letter-spacing: 0;
-}
-
-@utility text-label-l {
-  font-size: 0.875rem;
-  line-height: 0.875rem;
+@utility text-label-md {
+  font-size: 14px;
+  line-height: 14px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: 1%;
 }
 
-@utility text-caption-m {
-  font-size: 0.875rem;
-  line-height: 1rem;
+@utility text-caption-md {
+  font-size: 14px;
+  line-height: 16px;
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: 1%;
 }
 
-@utility text-caption-s {
-  font-size: 0.75rem;
-  line-height: 1rem;
+@utility text-caption-sm {
+  font-size: 12px;
+  line-height: 16px;
   font-weight: 400;
-  letter-spacing: 0.01em;
+  letter-spacing: 1%;
 }
 
 /* =========================
@@ -146,7 +138,7 @@
 
   body {
     font-family: var(--font-sans);
-    @apply text-body-l bg-gray-50 text-gray-900;
+    @apply text-body-lg bg-gray-50 text-gray-900;
   }
 
   * {

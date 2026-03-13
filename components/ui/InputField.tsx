@@ -32,7 +32,7 @@ export function InputField({
   );
 
   const inputTone = cn(
-    "text-body-l w-full border-0 bg-transparent outline-none",
+    "text-body-lg w-full border-0 bg-transparent outline-none",
     fieldState === "default" && "text-gray-300 placeholder:text-gray-300",
     fieldState === "hovered" && "text-gray-50 placeholder:text-gray-300",
     fieldState === "pressed" && "text-gray-50 placeholder:text-gray-300",
@@ -41,7 +41,7 @@ export function InputField({
 
   return (
     <label className="flex w-full flex-col gap-2">
-      {label ? <span className="text-caption-m text-gray-500">{label}</span> : null}
+      {label ? <span className="text-caption-md text-gray-500">{label}</span> : null}
       <span
         className={cn(
           "flex h-[60px] w-full items-center gap-3 rounded-xl border px-5 transition-colors",
@@ -64,7 +64,7 @@ export function InputField({
         />
       </span>
       {fieldState === "error" && errorMessage ? (
-        <span className="text-caption-s text-error-500">{errorMessage}</span>
+        <span className="text-caption-sm text-error-500">{errorMessage}</span>
       ) : null}
     </label>
   );

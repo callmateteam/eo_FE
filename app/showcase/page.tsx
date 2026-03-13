@@ -36,13 +36,13 @@ export default function ShowcasePage() {
         <section className="overflow-hidden rounded-4xl border border-black/10 bg-white p-8 shadow-[0_24px_80px_rgba(18,18,20,0.08)]">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl space-y-3">
-              <p className="text-caption-m text-secondary-500">
+              <p className="text-caption-md text-secondary-500">
                 Common Components Showcase
               </p>
-              <h1 className="text-display-m text-gray-900">
+              <h1 className="text-display-md text-gray-900">
                 Image matched component review
               </h1>
-              <p className="text-body-l text-gray-500">
+              <p className="text-body-lg text-gray-500">
                 Components are being tuned against the screenshot exports while
                 still using the global token system.
               </p>
@@ -57,14 +57,14 @@ export default function ShowcasePage() {
         <section className="grid gap-8 lg:grid-cols-[1.4fr_0.8fr]">
           <article className="rounded-[28px] border border-black/10 bg-white p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-headline-m text-gray-900">Buttons</h2>
-              <p className="text-body-m text-gray-500">
+              <h2 className="text-heading-md text-gray-900">Buttons</h2>
+              <p className="text-body-md text-gray-500">
                 Filled, outlined, error and disabled states.
               </p>
             </div>
             <div className="grid gap-6">
               <div className="space-y-3">
-                <p className="text-caption-m text-gray-300">Filled / md</p>
+                <p className="text-caption-md text-gray-300">Filled / md</p>
                 <div className="flex flex-wrap gap-4 bg-black p-4">
                   {buttonStates.map((state) => (
                     <Button key={state} size="md" state={state}>
@@ -77,7 +77,7 @@ export default function ShowcasePage() {
                 </div>
               </div>
               <div className="space-y-3">
-                <p className="text-caption-m text-gray-300">
+                <p className="text-caption-md text-gray-300">
                   Outlined / sm
                 </p>
                 <div className="flex flex-wrap gap-4 bg-black p-4">
@@ -97,7 +97,7 @@ export default function ShowcasePage() {
                 </div>
               </div>
               <div className="space-y-3">
-                <p className="text-caption-m text-gray-300">
+                <p className="text-caption-md text-gray-300">
                   Tiny variants
                 </p>
                 <div className="flex flex-wrap gap-4 bg-black p-4">
@@ -120,8 +120,8 @@ export default function ShowcasePage() {
 
           <article className="rounded-[28px] border border-black/10 bg-white p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-headline-m text-gray-900">Navigation</h2>
-              <p className="text-body-m text-gray-500">
+              <h2 className="text-heading-md text-gray-900">Navigation</h2>
+              <p className="text-body-md text-gray-500">
                 Navi and navigation rail states.
               </p>
             </div>
@@ -143,8 +143,8 @@ export default function ShowcasePage() {
         <section className="grid gap-8 lg:grid-cols-[1.1fr_1.1fr_0.8fr]">
           <article className="rounded-[28px] border border-black/10 bg-white p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-headline-m text-gray-900">Chips</h2>
-              <p className="text-body-m text-gray-500">
+              <h2 className="text-heading-md text-gray-900">Chips</h2>
+              <p className="text-body-md text-gray-500">
                 Filter and status selection.
               </p>
             </div>
@@ -157,10 +157,10 @@ export default function ShowcasePage() {
 
           <article className="rounded-[28px] border border-black/10 bg-white p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-headline-m text-gray-900">
+              <h2 className="text-heading-md text-gray-900">
                 Input Fields
               </h2>
-              <p className="text-body-m text-gray-500">
+              <p className="text-body-md text-gray-500">
                 Default, focus and error surfaces.
               </p>
             </div>
@@ -174,8 +174,8 @@ export default function ShowcasePage() {
 
           <article className="rounded-[28px] border border-black/10 bg-white p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-headline-m text-gray-900">Stepper</h2>
-              <p className="text-body-m text-gray-500">
+              <h2 className="text-heading-md text-gray-900">Stepper</h2>
+              <p className="text-body-md text-gray-500">
                 Progress indicator and loading.
               </p>
             </div>
@@ -194,8 +194,8 @@ export default function ShowcasePage() {
         <section className="grid gap-8 lg:grid-cols-[1fr_1fr]">
           <article className="rounded-[28px] border border-black/10 bg-white p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-headline-m text-gray-900">Icons</h2>
-              <p className="text-body-m text-gray-500">
+              <h2 className="text-heading-md text-gray-900">Icons</h2>
+              <p className="text-body-md text-gray-500">
                 Temporary SVG redraws until original vectors arrive.
               </p>
             </div>
@@ -206,7 +206,7 @@ export default function ShowcasePage() {
                   key={name}
                 >
                   <Icon name={name} />
-                  <span className="text-caption-s text-center text-gray-300">
+                  <span className="text-caption-sm text-center text-gray-300">
                     {name}
                   </span>
                 </div>
@@ -216,8 +216,8 @@ export default function ShowcasePage() {
 
           <article className="rounded-[28px] border border-black/10 bg-white p-8">
             <div className="mb-6 space-y-2">
-              <h2 className="text-headline-m text-gray-900">Drag & Drop</h2>
-              <p className="text-body-m text-gray-500">
+              <h2 className="text-heading-md text-gray-900">Drag & Drop</h2>
+              <p className="text-body-md text-gray-500">
                 Click or drag files into the card.
               </p>
             </div>
@@ -227,10 +227,10 @@ export default function ShowcasePage() {
 
         <section className="rounded-[28px] border border-black/10 bg-white p-8">
           <div className="mb-6 space-y-2">
-            <h2 className="text-headline-m text-gray-900">
+            <h2 className="text-heading-md text-gray-900">
               Interaction Asset
             </h2>
-            <p className="text-body-m text-gray-500">
+            <p className="text-body-md text-gray-500">
               Current drag & drop illustration asset.
             </p>
           </div>

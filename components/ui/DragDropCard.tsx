@@ -83,17 +83,17 @@ export function DragDropCard({
         type="file"
       />
       <MediaStackIllustration className="mb-10" />
-      <h3 className="text-headline-l text-gray-50">{title}</h3>
-      <p className="mt-4 text-label-l text-gray-300">{helperText}</p>
-      <p className="mt-6 max-w-[520px] text-body-m text-gray-300">
+      <h3 className="text-heading-xl text-gray-50">{title}</h3>
+      <p className="mt-4 text-label-md text-gray-300">{helperText}</p>
+      <p className="mt-6 max-w-[520px] text-body-md text-gray-300">
         {description}
       </p>
       <div className="mt-8 flex flex-col items-center gap-3">
-        <span className="text-label-l text-primary-500">
+        <span className="text-label-md text-primary-500">
           클릭하거나 파일을 여기로 드래그하세요
         </span>
         {files.length > 0 ? (
-          <ul className="flex flex-col gap-2 text-body-m text-gray-50">
+          <ul className="flex flex-col gap-2 text-body-md text-gray-50">
             {files.map((file) => (
               <li key={`${file.name}-${file.size}`}>{file.name}</li>
             ))}

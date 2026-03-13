@@ -30,7 +30,7 @@ export function NavigationRail({
       />
       <span
         className={cn(
-          "text-caption-m min-w-full text-center",
+          "text-caption-md min-w-full text-center",
           state === "default" && "text-gray-50",
           state === "hovered" && "text-gray-50",
           state === "clicked" && "text-primary-500"
