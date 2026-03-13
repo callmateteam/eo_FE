@@ -25,6 +25,7 @@ export const iconAssets = {
 } as const;
 
 export const socialAssets = {
+  google: "/assets/social/google.png",
   instagram: "/assets/social/instagram.png",
   tiktok: "/assets/social/tiktok.png",
   youtube: "/assets/social/youtube.png",

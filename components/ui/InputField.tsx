@@ -1,6 +1,7 @@
 "use client";
 
 import type { InputHTMLAttributes } from "react";
+import { useState } from "react";
 
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { cn } from "@/components/ui/utils";
@@ -22,6 +23,9 @@ export function InputField({
   leadingIcon,
   ...props
 }: Props) {
+  const isPasswordField = props.type === "password";
+  const [showPassword, setShowPassword] = useState(false);
+
   const containerTone = cn(
     fieldState === "default" &&
       "border-black/10 bg-[linear-gradient(90deg,#121214_0%,#1e1e22_100%)]",
@@ -38,6 +42,12 @@ export function InputField({
     fieldState === "pressed" && "text-gray-50 placeholder:text-gray-300",
     fieldState === "error" && "text-gray-50 placeholder:text-gray-300"
   );
+
+  const resolvedType = isPasswordField
+    ? showPassword
+      ? "text"
+      : "password"
+    : props.type;
 
   return (
     <label className="flex w-full flex-col gap-2">
@@ -61,7 +71,21 @@ export function InputField({
         <input
           {...props}
           className={inputTone}
+          type={resolvedType}
         />
+        {isPasswordField ? (
+          <button
+            aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+            className="inline-flex size-5 items-center justify-center text-gray-300 transition-colors hover:text-gray-50"
+            onClick={() => setShowPassword((current) => !current)}
+            type="button"
+          >
+            <Icon
+              className="size-5"
+              name={showPassword ? "view-on" : "view-off"}
+            />
+          </button>
+        ) : null}
       </span>
       {fieldState === "error" && errorMessage ? (
         <span className="text-caption-sm text-error-500">{errorMessage}</span>

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import Image from "next/image";
+import Link from "next/link";
 
 import { LandingFeatureShowcase } from "@/components/landing/LandingFeatureShowcase";
 import { Button } from "@/components/ui/Button";
@@ -50,9 +51,12 @@ export default function Home() {
               width={35.52}
             />
           </div>
-          <LandingButton className="w-auto" outlined>
+          <Link
+            className="inline-flex h-12 items-center justify-center rounded-full border border-primary-500 bg-gray-800 px-4 text-label-md text-gray-50 shadow-[0_1px_8px_4px_rgba(186,78,255,0.13)]"
+            href="/login"
+          >
             회원가입 / 로그인
-          </LandingButton>
+          </Link>
         </div>
       </header>
 

@@ -18,6 +18,8 @@ export type IconName =
   | "right"
   | "sound"
   | "up"
+  | "view-off"
+  | "view-on"
   | "video";
 
 type IconProps = SVGProps<SVGSVGElement> & {
@@ -145,6 +147,22 @@ export function Icon(props: IconProps) {
       return (
         <svg {...svgProps} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
           <path d="m5 12.5 4.25 4.25L19 7" />
+        </svg>
+      );
+    case "view-on":
+      return (
+        <svg {...svgProps} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8">
+          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      );
+    case "view-off":
+      return (
+        <svg {...svgProps} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8">
+          <path d="m3 3 18 18" />
+          <path d="M10.6 5.2A10.75 10.75 0 0 1 12 5c6 0 9.5 7 9.5 7a17.7 17.7 0 0 1-3.02 3.67" />
+          <path d="M14.9 14.9A4.2 4.2 0 0 1 12 16c-6 0-9.5-4-9.5-4a18.9 18.9 0 0 1 4.6-4.95" />
+          <path d="M9.9 9.9A3 3 0 0 0 14.1 14.1" />
         </svg>
       );
     default:
