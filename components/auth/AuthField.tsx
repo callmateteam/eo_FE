@@ -1,21 +1,29 @@
+import type { InputHTMLAttributes } from "react";
+
 import { InputField } from "@/components/ui/InputField";
 
-type AuthFieldProps = {
+type AuthFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
+  errorMessage?: string;
   label: string;
   placeholder: string;
   type?: "text" | "password";
 };
 
-export function AuthField({ label, placeholder, type = "text" }: AuthFieldProps) {
+export function AuthField({
+  errorMessage,
+  label,
+  placeholder,
+  type = "text",
+  ...inputProps
+}: AuthFieldProps) {
   return (
     <div className="flex flex-col gap-[10px]">
-      <p className="m-0 text-[14px] leading-none font-semibold tracking-[-0.01em] text-[#f1eefc]">
-        {label}
-      </p>
       <InputField
-        className="h-[58px] rounded-[7px] border-transparent bg-[#05060c] px-[14px] shadow-none"
-        defaultValue=""
-        fieldState="default"
+        {...inputProps}
+        className="h-[58px] rounded-[7px] bg-[#05060c] px-[14px] shadow-none"
+        errorMessage={errorMessage}
+        fieldState={errorMessage ? "error" : "default"}
+        label={label}
         placeholder={placeholder}
         type={type}
       />
