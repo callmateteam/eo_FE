@@ -24,14 +24,13 @@ function createQueryClient() {
 
 export function AppProviders({ children }: PropsWithChildren) {
   const [queryClient] = useState(createQueryClient);
+  const content = (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
 
   if (!googleClientId) {
-    throw new Error("NEXT_PUBLIC_GOOGLE_CLIENT_ID is not configured.");
+    return content;
   }
 
-  return (
-    <GoogleOAuthProvider clientId={googleClientId}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </GoogleOAuthProvider>
-  );
+  return <GoogleOAuthProvider clientId={googleClientId}>{content}</GoogleOAuthProvider>;
 }
