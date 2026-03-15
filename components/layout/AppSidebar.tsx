@@ -72,8 +72,9 @@ export function AppSidebar() {
       <div className="flex flex-1 flex-col items-center gap-[20px] pt-[2px]">
         {navItems.map((item) => {
           const isActive = item.match(pathname);
+          const href = item.href;
 
-          if (!item.href) {
+          if (!href) {
             return (
               <div
                 key={item.label}
@@ -98,7 +99,7 @@ export function AppSidebar() {
                 icon={item.icon}
                 onClick={() => {
                   closeProfile();
-                  router.push(item.href);
+                  router.push(href);
                 }}
                 state={isActive ? "clicked" : "default"}
               />
