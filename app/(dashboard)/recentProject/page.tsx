@@ -1,5 +1,10 @@
 import { RequireAuth } from "@/components/auth/RequireAuth";
+import { DashboardPage } from "@/components/dashboard/DashboardPage";
 
 export default function RecentProjectPage() {
-  return <RequireAuth>대시보드-최근 프로젝트</RequireAuth>;
+  return (
+    <RequireAuth>
+      <DashboardPage />
+    </RequireAuth>
+  );
 }
