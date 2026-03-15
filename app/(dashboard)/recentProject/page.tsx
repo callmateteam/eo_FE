@@ -1,10 +1,5 @@
-import { RequireAuth } from "@/components/auth/RequireAuth";
-import { DashboardPage } from "@/components/dashboard/DashboardPage";
+import { redirect } from "next/navigation";
 
-export default function RecentProjectPage() {
-  return (
-    <RequireAuth>
-      <DashboardPage />
-    </RequireAuth>
-  );
+export default function RecentProjectRedirectPage() {
+  redirect("/dashboard");
 }

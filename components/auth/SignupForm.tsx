@@ -179,7 +179,7 @@ export function SignupForm() {
         username: values.username,
       });
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-      router.replace("/recentProject");
+      router.replace("/dashboard");
     } catch (error) {
       if (error instanceof ApiError) {
         for (const item of error.errors) {

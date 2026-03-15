@@ -4,14 +4,14 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 import { cn } from "@/components/ui/utils";
 
-type ChipState = "default" | "hovered" | "clicked";
+export type ScriptInputFieldState = "default" | "selected";
 
 type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
   children?: ReactNode;
-  state?: ChipState;
+  state?: ScriptInputFieldState;
 };
 
-export function Chip({
+export function ScriptInputField({
   children = "text",
   className,
   state = "default",
@@ -22,10 +22,9 @@ export function Chip({
     <button
       {...props}
       className={cn(
-        "text-heading-md inline-flex h-11 min-w-[57px] items-center justify-center rounded-full px-3 py-2 tracking-[-0.18px] transition-colors",
+        "inline-flex h-[31px] min-w-[120px] items-center rounded-md px-3 text-[12px] font-medium leading-[16px] tracking-[0.12px] transition-colors",
         state === "default" && "bg-transparent text-gray-300",
-        state === "hovered" && "bg-transparent text-gray-50",
-        state === "clicked" && "bg-gray-700 text-gray-50",
+        state === "selected" && "bg-primary-500 text-gray-50",
         className
       )}
       type={type}

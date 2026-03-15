@@ -18,7 +18,7 @@ export function AuthRouteGate({ children }: AuthRouteGateProps) {
 
   useEffect(() => {
     if (user) {
-      router.replace("/recentProject");
+      router.replace("/dashboard");
     }
   }, [router, user]);
 

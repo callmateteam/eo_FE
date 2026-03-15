@@ -31,6 +31,16 @@
 - Why it matters: 토큰을 브라우저 저장소에 보관하지 않고 `me` 조회, `401 -> refresh -> 재시도` 흐름을 공통 계층에서 재사용할 수 있습니다.
 - Decision: 회원가입은 `validate-username -> signup -> login` 순서로 처리해 자동 로그인합니다.
 - Why it matters: 백엔드 `signup` 응답이 세션 쿠키를 직접 발급하지 않아도 프론트 UX를 유지할 수 있습니다.
+- Decision: 인증이 필요한 앱 화면은 `app/(dashboard)` 라우트 그룹 아래에서 `layout.tsx`의 공통 `AppShell`과 사이드바를 공유합니다.
+- Why it matters: 대시보드, 프로젝트, 캐릭터 페이지가 동일한 앱 프레임을 재사용하고 페이지 컴포넌트는 본문 영역에만 집중할 수 있습니다.
+- Decision: 클릭 가능한 커스텀 UI에는 기본적으로 `cursor-pointer`를 적용하고, 비활성 상태만 `cursor-not-allowed`로 구분합니다.
+- Why it matters: 브라우저 기본 버튼 스타일에 의존하지 않고 인터랙션 affordance를 일관되게 유지할 수 있습니다.
+- Decision: UI 구현은 사용자가 제공한 이미지 또는 Figma MCP를 기준으로 진행하며, 기준 시안과 100% 일치하는 것을 기본 목표로 삼습니다.
+- Why it matters: 임의 해석이나 추정 디자인을 줄이고, 시안 기반 구현 정확도를 일관되게 유지할 수 있습니다.
+- Decision: UI 작업 중 궁금한 점, 확실하지 않은 점, 필요한 데이터, 인터랙션 정의 누락이 있으면 구현 전에 반드시 사용자에게 확인합니다.
+- Why it matters: 추측 구현으로 인한 재작업을 줄이고, 시안과 실제 동작 요구사항을 정확히 맞출 수 있습니다.
+- Decision: Figma MCP 조회는 루트 프레임 전체보다 필요한 하위 노드를 개별 `get_metadata`/`get_design_context`로 최소 조회하는 방식을 우선합니다.
+- Why it matters: plan limit 에러 가능성을 줄이고, 다음 UI 보정 작업에서도 필요한 컴포넌트만 안정적으로 확인할 수 있습니다.
 
 ## 업데이트 템플릿
 

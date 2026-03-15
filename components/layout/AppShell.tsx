@@ -1,16 +1,16 @@
 import type { ReactNode } from "react";
 
-import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import { AppSidebar } from "@/components/layout/AppSidebar";
 
-type DashboardShellProps = {
+type AppShellProps = {
   children: ReactNode;
 };
 
-export function DashboardShell({ children }: DashboardShellProps) {
+export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-[#111115] text-white">
       <div className="flex min-h-screen">
-        <DashboardSidebar />
+        <AppSidebar />
         <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
       </div>
     </div>

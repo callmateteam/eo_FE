@@ -23,7 +23,7 @@ export function GoogleLoginButton() {
     try {
       await googleLoginMutation.mutateAsync(credential);
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-      router.replace("/recentProject");
+      router.replace("/dashboard");
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);

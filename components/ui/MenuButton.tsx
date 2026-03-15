@@ -4,14 +4,14 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 import { cn } from "@/components/ui/utils";
 
-type ChipState = "default" | "hovered" | "clicked";
+export type MenuButtonState = "default" | "hovered" | "pressed";
 
 type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
   children?: ReactNode;
-  state?: ChipState;
+  state?: MenuButtonState;
 };
 
-export function Chip({
+export function MenuButton({
   children = "text",
   className,
   state = "default",
@@ -22,10 +22,10 @@ export function Chip({
     <button
       {...props}
       className={cn(
-        "text-heading-md inline-flex h-11 min-w-[57px] items-center justify-center rounded-full px-3 py-2 tracking-[-0.18px] transition-colors",
-        state === "default" && "bg-transparent text-gray-300",
-        state === "hovered" && "bg-transparent text-gray-50",
-        state === "clicked" && "bg-gray-700 text-gray-50",
+        "inline-flex w-[81px] items-center rounded-[4px] p-1 text-left text-[14px] font-semibold leading-[14px] tracking-[0.14px] text-[#f5f5f5] transition-colors",
+        state === "default" && "bg-transparent",
+        state === "hovered" && "cursor-pointer bg-primary-500",
+        state === "pressed" && "bg-primary-500",
         className
       )}
       type={type}

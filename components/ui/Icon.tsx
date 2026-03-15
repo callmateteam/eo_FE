@@ -5,6 +5,7 @@ import { cn } from "@/components/ui/utils";
 export type IconName =
   | "avatar"
   | "check"
+  | "close"
   | "dashboard"
   | "down"
   | "left"
@@ -15,6 +16,7 @@ export type IconName =
   | "play-line"
   | "plus"
   | "redo"
+  | "reset"
   | "right"
   | "sound"
   | "up"
@@ -78,6 +80,13 @@ export function Icon(props: IconProps) {
         <svg {...svgProps} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8">
           <path d="M20 7v6h-6" />
           <path d="M20 13a8 8 0 1 1-2.34-5.66L20 10" />
+        </svg>
+      );
+    case "reset":
+      return (
+        <svg {...svgProps} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8">
+          <path d="M4 12a8 8 0 1 0 2.34-5.66L4 9" />
+          <path d="M4 4v5h5" />
         </svg>
       );
     case "sound":
@@ -147,6 +156,13 @@ export function Icon(props: IconProps) {
       return (
         <svg {...svgProps} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
           <path d="m5 12.5 4.25 4.25L19 7" />
+        </svg>
+      );
+    case "close":
+      return (
+        <svg {...svgProps} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8">
+          <path d="m7 7 10 10" />
+          <path d="M17 7 7 17" />
         </svg>
       );
     case "view-on":

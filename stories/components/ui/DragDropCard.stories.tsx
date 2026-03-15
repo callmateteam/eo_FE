@@ -9,7 +9,7 @@ const meta = {
   tags: ["autodocs"],
   args: {
     onFilesChange: fn(),
-    title: "Drag & Drop",
+    title: "이미지 파일 업로드",
   },
   parameters: {
     backgrounds: {
@@ -43,6 +43,22 @@ export const Pressed: Story = {
   render: (args) => (
     <div className="mx-auto max-w-[760px] bg-gray-900 p-10">
       <DragDropCard {...args} state="pressed" />
+    </div>
+  ),
+};
+
+export const FileSizeError: Story = {
+  render: (args) => (
+    <div className="mx-auto max-w-[760px] bg-gray-900 p-10">
+      <DragDropCard {...args} state="file-size-error" />
+    </div>
+  ),
+};
+
+export const MinImageError: Story = {
+  render: (args) => (
+    <div className="mx-auto max-w-[760px] bg-gray-900 p-10">
+      <DragDropCard {...args} state="min-image-error" />
     </div>
   ),
 };

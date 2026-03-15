@@ -3,13 +3,13 @@ import { Icon } from "@/components/ui/Icon";
 export function ProjectCreateCard() {
   return (
     <button
-      className="flex h-[184px] w-[148px] shrink-0 flex-col items-center justify-center gap-[14px] rounded-[16px] border border-[#60606e] bg-[#202026] text-white transition-colors hover:border-[#8b45ff]"
+      className="flex h-[280px] w-[224px] shrink-0 flex-col items-center justify-center gap-2 rounded-[20px] border border-[#8e8e93] bg-[#1e1e22] text-white transition-colors hover:cursor-pointer hover:border-[#8a3ed9] hover:bg-[#121214] active:border-2 active:border-[#ba4eff] active:bg-[#121214]"
       type="button"
     >
-      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#8b45ff] text-[#8b45ff]">
-        <Icon className="size-4" name="plus" />
+      <span className="flex h-12 w-12 items-center justify-center rounded-full border-[1.5px] border-[#ba4eff] text-[#ba4eff]">
+        <Icon className="size-6" name="plus" />
       </span>
-      <span className="text-[12px] font-semibold leading-none tracking-[-0.02em] text-[#d7d7dc]">
+      <span className="text-center text-[14px] font-medium leading-[14px] tracking-[0.14px] text-[#e5e5ea]">
         새 프로젝트 생성
       </span>
     </button>
