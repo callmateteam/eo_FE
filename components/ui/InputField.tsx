@@ -32,7 +32,7 @@ export function InputField({
     fieldState === "hovered" &&
       "border-black/15 bg-[linear-gradient(90deg,#121214_0%,#1e1e22_100%)]",
     fieldState === "pressed" && "border-primary-500 bg-gray-700",
-    fieldState === "error" && "border-error-500 bg-gray-700"
+    fieldState === "error" && "border-error-500 bg-gray-700",
   );
 
   const inputTone = cn(
@@ -40,7 +40,7 @@ export function InputField({
     fieldState === "default" && "text-gray-300 placeholder:text-gray-300",
     fieldState === "hovered" && "text-gray-50 placeholder:text-gray-300",
     fieldState === "pressed" && "text-gray-50 placeholder:text-gray-300",
-    fieldState === "error" && "text-gray-50 placeholder:text-gray-300"
+    fieldState === "error" && "text-gray-50 placeholder:text-gray-300",
   );
 
   const resolvedType = isPasswordField
@@ -51,28 +51,26 @@ export function InputField({
 
   return (
     <label className="flex w-full flex-col gap-2">
-      {label ? <span className="text-caption-md text-gray-500">{label}</span> : null}
+      {label ? (
+        <span className="text-heading-md text-gray-100">{label}</span>
+      ) : null}
       <span
         className={cn(
           "flex h-[60px] w-full items-center gap-3 rounded-xl border px-5 transition-colors",
           containerTone,
-          className
+          className,
         )}
       >
         {leadingIcon ? (
           <Icon
             className={cn(
               "size-5",
-              fieldState === "default" ? "text-gray-300" : "text-gray-50"
+              fieldState === "default" ? "text-gray-300" : "text-gray-50",
             )}
             name={leadingIcon}
           />
         ) : null}
-        <input
-          {...props}
-          className={inputTone}
-          type={resolvedType}
-        />
+        <input {...props} className={inputTone} type={resolvedType} />
         {isPasswordField ? (
           <button
             aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}

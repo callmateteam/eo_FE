@@ -24,6 +24,7 @@ export function Navi({
       {...props}
       className={cn(
         "inline-flex size-10 items-center justify-center rounded-xl p-2 transition-colors",
+        props.disabled ? "cursor-not-allowed" : "cursor-pointer",
         state === "default" && "bg-transparent text-gray-50",
         state === "hovered" &&
           "bg-[radial-gradient(circle_at_center,#8a3ed9_0%,#6b2bb1_100%)] text-gray-50",
