@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 
-import { ProjectCard } from "@/components/ui/ProjectCard";
+import { CharacterCard } from "@/components/ui/CharacterCard";
 
 const meta = {
-  title: "Components/ProjectCard",
-  component: ProjectCard,
+  title: "Components/CharacterCard",
+  component: CharacterCard,
   tags: ["autodocs"],
   parameters: {
     backgrounds: {
@@ -12,15 +12,13 @@ const meta = {
     },
   },
   args: {
-    characterName: "name",
+    badgeLabel: "My",
     imageSrc: "/assets/landing/cards/storyboard-cover-1.png",
     onDelete: () => undefined,
     onEdit: () => undefined,
-    progressLabel: "12%",
-    statusLabel: "진행 중",
-    title: "Title",
+    title: "캐릭터명",
   },
-} satisfies Meta<typeof ProjectCard>;
+} satisfies Meta<typeof CharacterCard>;
 
 export default meta;
 

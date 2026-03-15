@@ -3,10 +3,11 @@
 import { useRef } from "react";
 
 import type { DashboardProject } from "@/lib/api/dashboard";
+import { getProjectCardImageSrc } from "@/lib/project-card";
 
-import { ProjectCard } from "@/components/dashboard/ProjectCard";
-import { ProjectCreateCard } from "@/components/dashboard/ProjectCreateCard";
 import { Icon } from "@/components/ui/Icon";
+import { ProjectCard } from "@/components/ui/ProjectCard";
+import { ProjectCreateCard } from "@/components/ui/ProjectCreateCard";
 
 type ProjectCarouselProps = {
   projects: DashboardProject[];
@@ -64,7 +65,19 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
         </div>
         {projects.map((project, index) => (
           <div key={project.id} className="snap-start">
-            <ProjectCard index={index} project={project} />
+            <ProjectCard
+              characterName={project.character_name}
+              imageSrc={getProjectCardImageSrc(project.character_image, index)}
+              onDelete={() => undefined}
+              onEdit={() => undefined}
+              progressLabel={
+                typeof project.progress === "number" && Number.isFinite(project.progress)
+                  ? `${project.progress}%`
+                  : null
+              }
+              statusLabel={project.status_label}
+              title={project.title}
+            />
           </div>
         ))}
       </div>

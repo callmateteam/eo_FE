@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -50,6 +50,7 @@ export function AppSidebar() {
   const router = useRouter();
   const { data: user } = useCurrentUser();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileButtonRef = useRef<HTMLButtonElement | null>(null);
   const closeProfile = useCallback(() => {
     setIsProfileOpen(false);
   }, []);
@@ -119,6 +120,7 @@ export function AppSidebar() {
         aria-label="내 정보"
         className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-[radial-gradient(circle_at_top,#6d5cff_0%,#4132a1_100%)] text-[24px] leading-none font-semibold text-white"
         onClick={() => setIsProfileOpen((prev) => !prev)}
+        ref={profileButtonRef}
         type="button"
       >
         {profileLabel}
@@ -127,6 +129,7 @@ export function AppSidebar() {
       <SidebarProfilePanel
         isOpen={isProfileOpen}
         onClose={closeProfile}
+        triggerRef={profileButtonRef}
       />
     </aside>
   );

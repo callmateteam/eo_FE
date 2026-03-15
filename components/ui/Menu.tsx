@@ -9,12 +9,16 @@ type MenuProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
   className?: string;
   editLabel?: string;
   deleteLabel?: string;
+  onDelete?: () => void;
+  onEdit?: () => void;
 };
 
 export function Menu({
   className,
   deleteLabel = "삭제",
   editLabel = "수정",
+  onDelete,
+  onEdit,
   ...props
 }: MenuProps) {
   return (
@@ -26,10 +30,12 @@ export function Menu({
       )}
     >
       <div className="flex w-full items-center justify-center px-3 py-2">
-        <MenuButton state="hovered">{editLabel}</MenuButton>
+        <MenuButton onClick={onEdit} state="hovered">
+          {editLabel}
+        </MenuButton>
       </div>
       <div className="flex w-full items-center justify-center px-3 py-2">
-        <MenuButton>{deleteLabel}</MenuButton>
+        <MenuButton onClick={onDelete}>{deleteLabel}</MenuButton>
       </div>
     </div>
   );

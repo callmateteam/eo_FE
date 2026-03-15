@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 import Image from "next/image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import { socialAssets } from "@/lib/assets";
 type SidebarProfilePanelProps = {
   isOpen: boolean;
   onClose: () => void;
+  triggerRef: RefObject<HTMLButtonElement | null>;
 };
 
 type SocialRowProps = {
@@ -63,6 +64,7 @@ function SocialRow({
 export function SidebarProfilePanel({
   isOpen,
   onClose,
+  triggerRef,
 }: SidebarProfilePanelProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -92,7 +94,13 @@ export function SidebarProfilePanel({
     }
 
     function handlePointerDown(event: MouseEvent) {
-      if (!panelRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+
+      if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) {
+        return;
+      }
+
+      if (!panelRef.current?.contains(target)) {
         onClose();
       }
     }
@@ -110,7 +118,7 @@ export function SidebarProfilePanel({
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, triggerRef]);
 
   if (!isOpen) {
     return null;
