@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 
 import { ProjectCard } from "@/components/ui/ProjectCard";
 import { ProjectCreateCard } from "@/components/ui/ProjectCreateCard";
@@ -8,6 +9,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { getProjectCardImageSrc } from "@/lib/project-card";
 
 export function ProjectPage() {
+  const router = useRouter();
   const projectsQuery = useProjects();
   const projects = useMemo(
     () => projectsQuery.data?.projects ?? [],
@@ -22,7 +24,7 @@ export function ProjectPage() {
 
       <section className="pt-[40px]">
         <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <ProjectCreateCard />
+          <ProjectCreateCard onClick={() => router.push("/project/create")} />
           {projects.map((project, index) => (
             <ProjectCard
               key={project.id}

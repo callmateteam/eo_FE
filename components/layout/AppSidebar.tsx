@@ -21,9 +21,10 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
+    href: "/project/create",
     icon: "plus",
     label: "새 프로젝트",
-    match: () => false,
+    match: (pathname) => pathname.startsWith("/project/create"),
   },
   {
     href: "/dashboard",

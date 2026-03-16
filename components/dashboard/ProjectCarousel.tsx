@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useRouter } from "next/navigation";
 
 import type { DashboardProject } from "@/lib/api/dashboard";
 import { getProjectCardImageSrc } from "@/lib/project-card";
@@ -14,6 +15,7 @@ type ProjectCarouselProps = {
 };
 
 export function ProjectCarousel({ projects }: ProjectCarouselProps) {
+  const router = useRouter();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const hasProjects = projects.length > 0;
 
@@ -61,7 +63,7 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
         ].join(" ")}
       >
         <div className="snap-start">
-          <ProjectCreateCard />
+          <ProjectCreateCard onClick={() => router.push("/project/create")} />
         </div>
         {projects.map((project, index) => (
           <div key={project.id} className="snap-start">
