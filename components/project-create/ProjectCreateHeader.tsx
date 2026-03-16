@@ -12,7 +12,7 @@ export function ProjectCreateHeader({
   return (
     <header
       className={cn(
-        "flex h-[44px] items-center gap-3 bg-[linear-gradient(90deg,#694cf6_0%,#302b5d_36%,#1f1f24_100%)] px-[28px]",
+        "flex h-[58px] items-center gap-3 bg-[linear-gradient(90deg,#694cf6_0%,#302b5d_36%,#0b0b0f_100%)] px-[28px]",
         className
       )}
     >
