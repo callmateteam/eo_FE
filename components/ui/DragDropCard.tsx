@@ -128,7 +128,7 @@ export function DragDropCard({
     <label
       {...props}
       className={cn(
-        "flex h-[688px] w-[572px] cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed px-12 py-10 text-center transition-colors",
+        "flex h-[688px] w-full max-w-[572px] cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed px-12 py-10 text-center transition-colors",
         interactiveState === "default" && "border-gray-300 bg-gray-800",
         interactiveState === "hovered" && "border-primary-500 bg-gray-700",
         interactiveState === "pressed" && "border-primary-500 bg-gray-700",

@@ -17,13 +17,13 @@ export function ProjectCreateTextareaField({
 }: ProjectCreateTextareaFieldProps) {
   return (
     <label className={cn("flex w-full flex-col gap-3", className)}>
-      <span className="text-[14px] font-semibold leading-none tracking-[-0.02em] text-white">
+      <span className="text-heading-md text-gray-100">
         {label}
       </span>
       <textarea
         {...props}
         className={cn(
-          "min-h-[84px] w-full resize-none rounded-[8px] border border-[#2d2d34] bg-[#121214] px-4 py-3 text-[13px] font-medium leading-[1.6] tracking-[-0.02em] text-[#b6b6be] outline-none placeholder:text-[#6d6d76]",
+          "h-[116px] w-full resize-none rounded-[8px] border border-[#2d2d34] bg-[#121214] px-4 py-3 text-[13px] font-medium leading-[1.6] tracking-[-0.02em] text-[#b6b6be] outline-none placeholder:text-[#6d6d76]",
           className
         )}
       />

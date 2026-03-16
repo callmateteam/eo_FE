@@ -27,10 +27,10 @@ export function ProjectCreateSelectField({
 }: ProjectCreateSelectFieldProps) {
   return (
     <label className={cn("flex w-full flex-col gap-3", className)}>
-      <span className="text-[14px] font-semibold leading-none tracking-[-0.02em] text-white">
+      <span className="text-heading-md text-gray-100">
         {label}
       </span>
-      <span className="relative flex h-[44px] items-center rounded-[8px] border border-[#2d2d34] bg-[#121214] px-4">
+      <span className="relative flex h-[60px] items-center rounded-[8px] border border-[#2d2d34] bg-[#121214] px-4">
         <select
           {...props}
           className="h-full w-full appearance-none bg-transparent pr-8 text-[14px] font-medium leading-none text-[#d7d7dc] outline-none"
