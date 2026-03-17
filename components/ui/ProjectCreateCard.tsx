@@ -19,7 +19,7 @@ export function ProjectCreateCard({
   return (
     <button
       className={cn(
-        "flex shrink-0 flex-col items-center justify-center border bg-[#1e1e22] text-white transition-colors hover:cursor-pointer hover:border-[#8a3ed9] hover:bg-[#121214] active:border-[#ba4eff] active:bg-[#121214]",
+        "flex shrink-0 cursor-pointer flex-col items-center justify-center border bg-[#1e1e22] text-white transition-colors hover:border-[#8a3ed9] hover:bg-[#121214] active:border-[#ba4eff] active:bg-[#121214]",
         size === "default" &&
           "h-[280px] w-[224px] gap-2 rounded-[20px] border-[#8e8e93] active:border-2",
         size === "compact" &&

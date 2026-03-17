@@ -101,7 +101,7 @@ export function ProjectCard({
               aria-expanded={isMenuOpen}
               aria-label={menuAriaLabel}
               className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-md text-[#f5f5f5] opacity-0 transition-opacity group-hover:opacity-100",
+                "flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-[#f5f5f5] opacity-0 transition-opacity group-hover:opacity-100",
                 isMenuOpen && "opacity-100"
               )}
               onClick={handleMenuToggle}

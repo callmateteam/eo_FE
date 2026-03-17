@@ -13,7 +13,7 @@ type TrendSectionProps = {
 type TrendItem = {
   label: string;
   rank: number;
-  subtitle: string;
+  subtitle?: string | number | null;
 };
 
 const fallbackTrendingKeywords: TrendItem[] = [
@@ -76,8 +76,12 @@ function TrendColumn({
                 <p className="truncate text-[12px] font-semibold leading-none tracking-[-0.02em] text-white">
                   {item.label}
                 </p>
-                <p className="mt-[7px] text-[10px] font-medium leading-none text-[#8d8d96]">
-                  {item.subtitle}
+                <p className="mt-[7px] min-h-[10px] text-[10px] font-medium leading-none text-[#8d8d96]">
+                  {item.subtitle === null ||
+                  item.subtitle === undefined ||
+                  item.subtitle === ""
+                    ? "\u00A0"
+                    : item.subtitle}
                 </p>
               </div>
               <div className="flex justify-end">
@@ -108,7 +112,7 @@ export function TrendSection({
       ? trendingKeywords.map((item) => ({
           label: item.keyword,
           rank: item.rank,
-          subtitle: item.traffic,
+          subtitle: `${item.avg_views.toLocaleString()} Views`,
         }))
       : fallbackTrendingKeywords;
 
@@ -127,7 +131,9 @@ export function TrendSection({
         실시간 영상 제작 트렌드
       </h2>
       <div className="grid grid-cols-2 gap-[40px]">
-        <TrendColumn items={trendingItems} title="유튜브 인기 키워드" />
+        <div className="pr-[40px]">
+          <TrendColumn items={trendingItems} title="유튜브 인기 키워드" />
+        </div>
         <div className="border-l border-[#23232a] pl-[40px]">
           <TrendColumn items={creationItems} title="플랫폼 제작 급상승" />
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { CharacterTabs } from "@/components/character/CharacterTabs";
 import { CharacterCard } from "@/components/ui/CharacterCard";
@@ -20,6 +21,7 @@ type CharacterCardItem = {
 
 export function CharacterPage() {
   const [activeTab, setActiveTab] = useState<CharacterTab>("all");
+  const router = useRouter();
   const presetCharactersQuery = useCharacters();
   const customCharactersQuery = useCustomCharacters();
 
@@ -73,7 +75,11 @@ export function CharacterPage() {
 
       <section className="pt-[22px]">
         <div className="flex flex-wrap gap-3">
-          <ProjectCreateCard label="새 캐릭터 생성" size="compact" />
+          <ProjectCreateCard
+            label="새 캐릭터 생성"
+            onClick={() => router.push("/character/create")}
+            size="compact"
+          />
           {visibleCharacters.map((character) => (
             <CharacterCard
               key={character.id}

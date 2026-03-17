@@ -38,7 +38,7 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
         <>
           <button
             aria-label="이전 프로젝트"
-            className="absolute left-[-2px] top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[#8b45ff] bg-[#26262d] text-[#c98fff]"
+            className="absolute left-[-2px] top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-[#8b45ff] bg-[#26262d] text-[#c98fff]"
             onClick={() => scrollByOffset("left")}
             type="button"
           >
@@ -46,7 +46,7 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
           </button>
           <button
             aria-label="다음 프로젝트"
-            className="absolute right-[-2px] top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[#8b45ff] bg-[#26262d] text-[#c98fff]"
+            className="absolute right-[-2px] top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-[#8b45ff] bg-[#26262d] text-[#c98fff]"
             onClick={() => scrollByOffset("right")}
             type="button"
           >
@@ -77,7 +77,7 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
                   ? `${project.progress}%`
                   : null
               }
-              statusLabel={project.status_label}
+              statusLabel={project.progress === 100 ? "진행 완료" : "진행 중"}
               title={project.title}
             />
           </div>

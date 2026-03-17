@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/components/ui/utils";
 
+import { CharacterCreateStepBar } from "@/components/character-create/CharacterCreateStepBar";
 import { ProjectCreateHeader } from "@/components/project-create/ProjectCreateHeader";
-import { ProjectCreateStepBar } from "@/components/project-create/ProjectCreateStepBar";
 
-type ProjectCreateShellProps = {
+type CharacterCreateShellProps = {
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
@@ -15,7 +15,7 @@ type ProjectCreateShellProps = {
   title?: string;
 };
 
-export function ProjectCreateShell({
+export function CharacterCreateShell({
   actions,
   children,
   className,
@@ -23,14 +23,14 @@ export function ProjectCreateShell({
   description = "캐릭터의 이미지나 동영상을 업로드해주세요",
   projectTitle = "프로젝트명",
   title = "새 캐릭터 생성",
-}: ProjectCreateShellProps) {
+}: CharacterCreateShellProps) {
   return (
     <div className={cn("flex min-h-screen flex-col bg-[#111115]", className)}>
       <ProjectCreateHeader projectTitle={projectTitle} />
-      <main className="flex-1 px-[48px] pt-[28px] pb-[37px]">
-        <ProjectCreateStepBar currentStep={currentStep} />
+      <main className="flex-1 px-[36px] pb-[37px] pt-[28px]">
+        <CharacterCreateStepBar currentStep={currentStep} />
 
-        <div className="pt-[36px] text-center">
+        <div className="pt-[35px] text-center">
           <h1 className="text-[24px] leading-none font-semibold tracking-[-0.03em] text-white">
             {title}
           </h1>
@@ -41,7 +41,7 @@ export function ProjectCreateShell({
           ) : null}
         </div>
 
-        <div className="pt-[40px]">{children}</div>
+        <div className="pt-[34px]">{children}</div>
       </main>
 
       {actions ? (

@@ -32,6 +32,20 @@ export function getApiBaseUrl() {
   return apiBaseUrl;
 }
 
+export function getWebSocketBaseUrl() {
+  const baseUrl = getApiBaseUrl();
+
+  if (baseUrl.startsWith("https://")) {
+    return `wss://${baseUrl.slice("https://".length)}`;
+  }
+
+  if (baseUrl.startsWith("http://")) {
+    return `ws://${baseUrl.slice("http://".length)}`;
+  }
+
+  throw new Error("NEXT_PUBLIC_API_BASE_URL must start with http:// or https://");
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null) {
     return false;
