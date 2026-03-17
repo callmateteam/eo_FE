@@ -1,7 +1,7 @@
 import { StepBar } from "@/components/ui/StepBar";
 
 const stepLabels = [
-  "캐릭터 생성",
+  "캐릭터 설정",
   "아이디어 입력",
   "스토리보드 생성",
   "영상 생성 및 편집",

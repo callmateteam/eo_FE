@@ -29,6 +29,7 @@ export function CharacterCard({ character, index }: CharacterCardProps) {
     <SharedCharacterCard
       badgeLabel={badgeLabel}
       imageSrc={getProjectCardImageSrc(character.thumbnail_url || character.image_url, index)}
+      size="large"
       title={character.name}
     />
   );

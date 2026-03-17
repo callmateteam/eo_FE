@@ -25,9 +25,10 @@ export type DashboardCharacter = {
 };
 
 export type DashboardTrendKeyword = {
+  avg_views: number;
   keyword: string;
   rank: number;
-  traffic: string;
+  url?: string;
 };
 
 export type DashboardCreationTrend = {
@@ -37,9 +38,9 @@ export type DashboardCreationTrend = {
 };
 
 export type DashboardResponse = {
-  creation_trends: DashboardCreationTrend[];
+  creation_trends: DashboardCreationTrend[] | null;
   recent_characters: DashboardCharacter[] | null;
-  recent_projects: DashboardProject[];
+  recent_projects: DashboardProject[] | null;
   trending_keywords: DashboardTrendKeyword[];
 };
 

@@ -2,12 +2,12 @@ import { cn } from "@/components/ui/utils";
 
 type ProjectCreateHeaderProps = {
   className?: string;
-  title?: string;
+  projectTitle?: string;
 };
 
 export function ProjectCreateHeader({
   className,
-  title = "프로젝트명",
+  projectTitle = "프로젝트명",
 }: ProjectCreateHeaderProps) {
   return (
     <header
@@ -20,7 +20,7 @@ export function ProjectCreateHeader({
         P
       </div>
       <span className="text-[16px] font-semibold leading-none tracking-[-0.02em] text-white">
-        {title}
+        {projectTitle}
       </span>
     </header>
   );

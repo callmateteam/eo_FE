@@ -12,10 +12,8 @@ export function DashboardTabs({ onChange, value }: DashboardTabsProps) {
     <div className="flex items-center gap-[18px]">
       <button
         className={[
-          "cursor-pointer rounded-full px-[13px] py-[7px] text-[12px] font-semibold leading-none tracking-[-0.02em] transition-colors",
-          value === "projects"
-            ? "bg-[#3c3c45] text-white"
-            : "bg-transparent text-[#8f8f98]",
+          "text-heading-md cursor-pointer rounded-full px-[13px] py-[7px] transition-colors",
+          value === "projects" ? "bg-[#3c3c45] text-white" : "bg-transparent text-[#8f8f98]",
         ].join(" ")}
         onClick={() => onChange("projects")}
         type="button"
@@ -24,8 +22,10 @@ export function DashboardTabs({ onChange, value }: DashboardTabsProps) {
       </button>
       <button
         className={[
-          "cursor-pointer text-[12px] font-semibold leading-none tracking-[-0.02em] transition-colors",
-          value === "characters" ? "text-white" : "text-[#8f8f98]",
+          "text-heading-md cursor-pointer rounded-full px-[13px] py-[7px] transition-colors",
+          value === "characters"
+            ? "bg-[#3c3c45] text-white"
+            : "bg-transparent text-[#8f8f98]",
         ].join(" ")}
         onClick={() => onChange("characters")}
         type="button"

@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, getWebSocketBaseUrl } from "@/lib/api/client";
 
 export type CharacterStyle =
   | "REALISTIC"
@@ -61,6 +61,13 @@ export type CustomCharacterCreateResponse = {
   status?: string;
 };
 
+export type CustomCharacterProgressMessage = {
+  character_id: string;
+  progress: number;
+  status: "PROCESSING" | "COMPLETED" | "FAILED" | string;
+  step: string;
+};
+
 export type CreateCustomCharacterPayload = {
   description: string;
   image1: File;
@@ -109,4 +116,44 @@ export async function getCustomCharacter(characterId: string) {
   return apiFetch<CustomCharacter>(`/api/characters/custom/${characterId}`, {
     method: "GET",
   });
+}
+
+export function isCustomCharacterCompleted(character: CustomCharacter) {
+  return character.status.toUpperCase() === "COMPLETED";
+}
+
+export function isCustomCharacterFailed(character: CustomCharacter) {
+  return character.status.toUpperCase() === "FAILED";
+}
+
+export function openCustomCharacterProgressSocket(
+  characterId: string,
+  handlers: {
+    onClose?: () => void;
+    onError?: () => void;
+    onMessage: (message: CustomCharacterProgressMessage) => void;
+  }
+) {
+  const socket = new WebSocket(
+    `${getWebSocketBaseUrl()}/api/characters/custom/ws/${characterId}`
+  );
+
+  socket.onmessage = (event) => {
+    try {
+      const payload = JSON.parse(event.data) as CustomCharacterProgressMessage;
+      handlers.onMessage(payload);
+    } catch {
+      handlers.onError?.();
+    }
+  };
+
+  socket.onerror = () => {
+    handlers.onError?.();
+  };
+
+  socket.onclose = () => {
+    handlers.onClose?.();
+  };
+
+  return socket;
 }

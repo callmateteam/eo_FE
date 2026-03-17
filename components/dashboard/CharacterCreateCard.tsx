@@ -10,7 +10,7 @@ export function CharacterCreateCard() {
   return (
     <ProjectCreateCard
       label="새 캐릭터 생성"
-      onClick={() => router.push("/character")}
+      onClick={() => router.push("/character/create")}
       size="default"
     />
   );

@@ -2,7 +2,8 @@ import { ProjectStoryboardPage } from "@/components/project-create/ProjectStoryb
 
 type ProjectCreateStoryboardRoutePageProps = {
   searchParams?: Promise<{
-    characterId?: string;
+    projectId?: string;
+    storyboardId?: string;
   }>;
 };
 
@@ -12,6 +13,9 @@ export default async function ProjectCreateStoryboardRoutePage({
   const resolvedSearchParams = await searchParams;
 
   return (
-    <ProjectStoryboardPage characterId={resolvedSearchParams?.characterId} />
+    <ProjectStoryboardPage
+      projectId={resolvedSearchParams?.projectId}
+      storyboardId={resolvedSearchParams?.storyboardId}
+    />
   );
 }

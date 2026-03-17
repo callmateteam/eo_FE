@@ -2,7 +2,7 @@ import { ProjectIdeaPage } from "@/components/project-create/ProjectIdeaPage";
 
 type ProjectCreateIdeaRoutePageProps = {
   searchParams?: Promise<{
-    characterId?: string;
+    projectId?: string;
   }>;
 };
 
@@ -11,5 +11,5 @@ export default async function ProjectCreateIdeaRoutePage({
 }: ProjectCreateIdeaRoutePageProps) {
   const resolvedSearchParams = await searchParams;
 
-  return <ProjectIdeaPage characterId={resolvedSearchParams?.characterId} />;
+  return <ProjectIdeaPage projectId={resolvedSearchParams?.projectId} />;
 }

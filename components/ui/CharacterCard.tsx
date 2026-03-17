@@ -15,6 +15,7 @@ type CharacterCardProps = {
   menuAriaLabel?: string;
   onDelete?: () => void;
   onEdit?: () => void;
+  size?: "compact" | "large";
   title: string;
 };
 
@@ -26,6 +27,7 @@ export function CharacterCard({
   menuAriaLabel = "캐릭터 메뉴 열기",
   onDelete,
   onEdit,
+  size = "compact",
   title,
 }: CharacterCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(initialMenuOpen);
@@ -67,7 +69,9 @@ export function CharacterCard({
     <article
       ref={rootRef}
       className={cn(
-        "group relative h-[184px] w-[146px] shrink-0 overflow-hidden rounded-[16px] border border-transparent bg-[#292930]",
+        "group relative shrink-0 overflow-hidden border border-transparent bg-[#292930]",
+        size === "compact" && "h-[184px] w-[146px] rounded-[16px]",
+        size === "large" && "h-[280px] w-[225px] rounded-[20px]",
         (isMenuOpen || onEdit || onDelete) && "hover:border-[#ba4eff]",
         isMenuOpen && "border-[#ba4eff]",
         className
@@ -78,13 +82,19 @@ export function CharacterCard({
           alt={title}
           className="h-full w-full object-cover"
           fill
-          sizes="146px"
+          sizes={size === "large" ? "225px" : "146px"}
           src={imageSrc}
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,10,0.04)_0%,rgba(8,8,10,0.18)_48%,rgba(20,20,23,0.88)_100%)]" />
       </div>
 
-      <div className="relative flex h-full flex-col justify-between p-[10px]">
+      <div
+        className={cn(
+          "relative flex h-full flex-col justify-between",
+          size === "compact" && "p-[10px]",
+          size === "large" && "p-3"
+        )}
+      >
         <div className="flex items-start justify-between">
           {onEdit || onDelete ? (
             <div className="relative">
@@ -92,17 +102,31 @@ export function CharacterCard({
                 aria-expanded={isMenuOpen}
                 aria-label={menuAriaLabel}
                 className={cn(
-                  "flex h-5 w-5 items-center justify-center rounded-md text-[#f5f5f5] opacity-0 transition-opacity group-hover:opacity-100",
+                  "flex cursor-pointer items-center justify-center rounded-md text-[#f5f5f5] opacity-0 transition-opacity group-hover:opacity-100",
+                  size === "compact" && "h-5 w-5",
+                  size === "large" && "h-6 w-6",
                   isMenuOpen && "opacity-100"
                 )}
                 onClick={() => setIsMenuOpen((current) => !current)}
                 type="button"
               >
-                <span className="mb-[7px] text-[16px] leading-none">...</span>
+                <span
+                  className={cn(
+                    "leading-none",
+                    size === "compact" && "mb-[7px] text-[16px]",
+                    size === "large" && "mb-[7px] text-[18px]"
+                  )}
+                >
+                  ...
+                </span>
               </button>
               {isMenuOpen ? (
                 <Menu
-                  className="absolute left-0 top-[22px] z-10 shadow-[0_12px_24px_rgba(0,0,0,0.4)]"
+                  className={cn(
+                    "absolute left-0 z-10 shadow-[0_12px_24px_rgba(0,0,0,0.4)]",
+                    size === "compact" && "top-[22px]",
+                    size === "large" && "top-[26px]"
+                  )}
                   onDelete={handleDelete}
                   onEdit={handleEdit}
                 />
@@ -115,7 +139,9 @@ export function CharacterCard({
           {badgeLabel ? (
             <Badge
               className={cn(
-                "px-[8px] py-[5px] text-[9px] font-semibold leading-none tracking-[-0.02em]",
+                "font-semibold leading-none tracking-[-0.02em]",
+                size === "compact" && "px-[8px] py-[5px] text-[9px]",
+                size === "large" && "px-[10px] py-[7px] text-[12px]",
                 badgeLabel === "My" && "bg-[#3c3c45]",
                 badgeLabel === "Basic" && "bg-primary-500"
               )}
@@ -125,8 +151,14 @@ export function CharacterCard({
           ) : null}
         </div>
 
-        <div className="space-y-[3px]">
-          <h3 className="truncate text-[12px] font-semibold leading-none tracking-[-0.02em] text-white">
+        <div className={cn(size === "compact" && "space-y-[3px]")}>
+          <h3
+            className={cn(
+              "truncate font-semibold tracking-[-0.02em] text-white",
+              size === "compact" && "text-[12px] leading-none",
+              size === "large" && "text-[18px] leading-[28px] tracking-[-0.18px]"
+            )}
+          >
             {title}
           </h3>
         </div>
