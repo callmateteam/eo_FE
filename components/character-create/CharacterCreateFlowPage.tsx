@@ -3,23 +3,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { CharacterCreateProgressModal } from "@/components/character-create/modals/CharacterCreateProgressModal";
 import { CharacterRegisteredModal } from "@/components/character-create/modals/CharacterRegisteredModal";
 import { CharacterCreateShell } from "@/components/character-create/CharacterCreateShell";
 import { CharacterSetupStep } from "@/components/character-create/steps/CharacterSetupStep";
-import {
-  createCustomCharacter,
-  getCustomCharacter,
-  isCustomCharacterCompleted,
-  isCustomCharacterFailed,
-  openCustomCharacterProgressSocket,
-  type CharacterStyle,
-  type CustomCharacter,
-  type VoiceId,
-} from "@/lib/api/characters";
-import { createProject } from "@/lib/api/projects";
+import { useCreateCustomCharacter } from "@/hooks/useCharacters";
+import { useCreateProject } from "@/hooks/useProjects";
+import { queryKeys } from "@/hooks/query-keys";
+import { getCustomCharacter } from "@/lib/api/characters";
+import type { CharacterStyle, CustomCharacterItem, VoiceId } from "@/lib/api/types";
+import { compressImage } from "@/lib/compress-image";
 import { landingAssets } from "@/lib/assets";
 import { clearProjectDraft, updateProjectDraft } from "@/lib/project-draft";
 
@@ -45,138 +40,44 @@ export function CharacterCreateFlowPage() {
     "업로드한 이미지를 분석하고 있어요."
   );
   const [createdCharacterId, setCreatedCharacterId] = useState("");
-  const [createdCharacter, setCreatedCharacter] = useState<CustomCharacter | null>(null);
+  const [createdCharacter, setCreatedCharacter] = useState<CustomCharacterItem | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const createCharacterMutation = useMutation({
-    mutationFn: async () => {
-      if (selectedFiles.length !== 2) {
-        throw new Error("이미지는 정확히 2장 업로드해주세요.");
-      }
+  const createCharacterMutation = useCreateCustomCharacter();
+  const createProjectMutation = useCreateProject();
 
-      if (!characterName.trim()) {
-        throw new Error("캐릭터 이름을 입력해주세요.");
-      }
-
-      if (!characterDescription.trim()) {
-        throw new Error("캐릭터 설명을 입력해주세요.");
-      }
-
-      return createCustomCharacter({
-        description: characterDescription.trim(),
-        image1: selectedFiles[0],
-        image2: selectedFiles[1],
-        name: characterName.trim(),
-        style: styleValue,
-        voiceId: voiceValue,
-      });
-    },
-    onMutate: () => {
-      setErrorMessage(null);
-      setCreatedCharacterId("");
-      setCreatedCharacter(null);
-      setProgress(5);
-      setProgressStep("캐릭터 생성 요청을 전송하고 있어요.");
-      setShowCharacterModal(true);
-    },
-    onSuccess: (response) => {
-      setCreatedCharacterId(response.id);
-      setProgress(10);
-      setProgressStep("이미지를 업로드하고 있어요.");
-    },
-    onError: (error) => {
-      setShowCharacterModal(false);
-      setErrorMessage(
-        error instanceof Error ? error.message : "캐릭터 생성에 실패했습니다."
-      );
-    },
-  });
-
-  const createProjectMutation = useMutation({
-    mutationFn: async () => {
-      if (!createdCharacter) {
-        throw new Error("등록할 캐릭터 정보를 찾을 수 없습니다.");
-      }
-
-      return createProject({
-        custom_character_id: createdCharacter.id,
-        title: `${createdCharacter.name} 프로젝트`,
-      });
-    },
-    onSuccess: (project) => {
-      if (!createdCharacter) {
-        return;
-      }
-
-      clearProjectDraft();
-      updateProjectDraft({
-        characterId: createdCharacter.id,
-        characterImage:
-          createdCharacter.image_url_1 ||
-          createdCharacter.image_url_2 ||
-          landingAssets.cards.characterChef,
-        characterName: createdCharacter.name,
-        characterSource: "custom",
-        projectId: project.id,
-        title: project.title,
-      });
-
-      void queryClient.invalidateQueries({ queryKey: ["characters", "custom"] });
-      void queryClient.invalidateQueries({ queryKey: ["projects"] });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      router.push(`/project/create/idea?projectId=${encodeURIComponent(project.id)}`);
-    },
-    onError: (error) => {
-      setErrorMessage(
-        error instanceof Error ? error.message : "프로젝트 생성에 실패했습니다."
-      );
-    },
-  });
-
+  // Poll character creation status
   useEffect(() => {
-    if (!showCharacterModal || !createdCharacterId) {
-      return;
-    }
-
-    const socket = openCustomCharacterProgressSocket(createdCharacterId, {
-      onMessage: (message) => {
-        setProgress(message.progress ?? 0);
-        setProgressStep(message.step ?? "AI가 사진을 학습하고 있어요.");
-      },
-    });
-
-    return () => {
-      socket.close();
-    };
-  }, [createdCharacterId, showCharacterModal]);
-
-  useEffect(() => {
-    if (!showCharacterModal || !createdCharacterId) {
-      return;
-    }
+    if (!showCharacterModal || !createdCharacterId) return;
 
     let cancelled = false;
 
     const poll = async () => {
       try {
         const character = await getCustomCharacter(createdCharacterId);
+        if (cancelled) return;
 
-        if (cancelled) {
-          return;
-        }
+        const status = character.status?.toUpperCase();
 
-        if (isCustomCharacterCompleted(character)) {
+        if (status === "COMPLETED") {
           setCreatedCharacter(character);
           setShowCharacterModal(false);
           setScreen("preview");
-          void queryClient.invalidateQueries({ queryKey: ["characters", "custom"] });
-          void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.characters.custom });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
           return;
         }
 
-        if (isCustomCharacterFailed(character)) {
+        if (status === "FAILED") {
           setShowCharacterModal(false);
           setErrorMessage(character.error_msg ?? "캐릭터 생성에 실패했습니다.");
+          return;
+        }
+
+        // Update progress based on status
+        if (status === "PROCESSING") {
+          setProgress((prev) => Math.min(prev + 5, 85));
+          setProgressStep("AI가 사진을 학습하고 있어요.");
         }
       } catch (error) {
         if (!cancelled) {
@@ -191,15 +92,98 @@ export function CharacterCreateFlowPage() {
     };
 
     void poll();
-    const intervalId = window.setInterval(() => {
-      void poll();
-    }, 2500);
+    const intervalId = window.setInterval(() => void poll(), 3000);
 
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
     };
   }, [createdCharacterId, queryClient, showCharacterModal]);
+
+  async function handleCreateCharacter() {
+    if (selectedFiles.length !== 2) {
+      setErrorMessage("이미지는 정확히 2장 업로드해주세요.");
+      return;
+    }
+    if (!characterName.trim()) {
+      setErrorMessage("캐릭터 이름을 입력해주세요.");
+      return;
+    }
+    if (!characterDescription.trim()) {
+      setErrorMessage("캐릭터 설명을 입력해주세요.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setCreatedCharacterId("");
+    setCreatedCharacter(null);
+    setProgress(5);
+    setProgressStep("캐릭터 생성 요청을 전송하고 있어요.");
+    setShowCharacterModal(true);
+
+    try {
+      setProgressStep("이미지를 압축하고 있어요.");
+
+      const [compressed1, compressed2] = await Promise.all([
+        compressImage(selectedFiles[0]),
+        compressImage(selectedFiles[1]),
+      ]);
+
+      setProgress(8);
+      setProgressStep("캐릭터 생성 요청을 전송하고 있어요.");
+
+      const formData = new FormData();
+      formData.append("name", characterName.trim());
+      formData.append("description", characterDescription.trim());
+      formData.append("style", styleValue);
+      formData.append("voice_id", voiceValue);
+      formData.append("image1", compressed1);
+      formData.append("image2", compressed2);
+
+      const response = await createCharacterMutation.mutateAsync(formData);
+      setCreatedCharacterId(response.id);
+      setProgress(10);
+      setProgressStep("이미지를 업로드하고 있어요.");
+    } catch (error) {
+      setShowCharacterModal(false);
+      setErrorMessage(
+        error instanceof Error ? error.message : "캐릭터 생성에 실패했습니다."
+      );
+    }
+  }
+
+  async function handleCreateProject() {
+    if (!createdCharacter) {
+      setErrorMessage("등록할 캐릭터 정보를 찾을 수 없습니다.");
+      return;
+    }
+
+    try {
+      const project = await createProjectMutation.mutateAsync({
+        custom_character_id: createdCharacter.id,
+        title: `${createdCharacter.name} 프로젝트`,
+      });
+
+      clearProjectDraft();
+      updateProjectDraft({
+        characterId: createdCharacter.id,
+        characterImage:
+          createdCharacter.image_url_1 ||
+          createdCharacter.image_url_2 ||
+          landingAssets.cards.characterChef,
+        characterName: createdCharacter.name,
+        characterSource: "custom",
+        projectId: project.id,
+        title: project.title,
+      });
+
+      router.push(`/project/create/idea?projectId=${encodeURIComponent(project.id)}`);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "프로젝트 생성에 실패했습니다."
+      );
+    }
+  }
 
   return (
     <>
@@ -226,7 +210,7 @@ export function CharacterCreateFlowPage() {
               return;
             }
 
-            createCharacterMutation.mutate();
+            void handleCreateCharacter();
           }}
           onResetPreview={() => {
             setScreen("setup");
@@ -274,7 +258,7 @@ export function CharacterCreateFlowPage() {
           }}
           onGoNext={() => {
             setErrorMessage(null);
-            createProjectMutation.mutate();
+            void handleCreateProject();
           }}
         />
       ) : null}

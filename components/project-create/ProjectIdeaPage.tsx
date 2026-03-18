@@ -3,12 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { useMutation } from "@tanstack/react-query";
-
 import { Button } from "@/components/ui/Button";
-import { createStoryboard } from "@/lib/api/storyboards";
+import { useCreateStoryboard } from "@/hooks/useStoryboard";
+import { useUpdateProject } from "@/hooks/useProjects";
+import { getProject } from "@/lib/api/projects";
 import { ApiError } from "@/lib/api/client";
-import { getProject, updateProject } from "@/lib/api/projects";
 import {
   getProjectDraft,
   updateProjectDraft,
@@ -30,6 +29,8 @@ export function ProjectIdeaPage({ projectId }: ProjectIdeaPageProps) {
       "Luna가 방에서 신비로운 빛나는 포탈을 발견한다. 호기심에 손을 뻗어 포탈을 만진다.\n포탈이 마법 에너지로 소용돌이친다."
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const updateProjectMutation = useUpdateProject();
+  const storyboardMutation = useCreateStoryboard();
 
   useEffect(() => {
     if (!resolvedProjectId) {
@@ -47,37 +48,34 @@ export function ProjectIdeaPage({ projectId }: ProjectIdeaPageProps) {
     }
   }, [draft?.title, resolvedProjectId, router]);
 
-  const storyboardMutation = useMutation({
-    mutationFn: async () => {
-      const draft = getProjectDraft();
+  async function handleCreateStoryboard() {
+    const draft = getProjectDraft();
 
-      if (!resolvedProjectId || !draft?.characterId || !draft.characterSource) {
-        throw new Error("프로젝트 정보가 없습니다. 다시 시작해주세요.");
-      }
+    if (!resolvedProjectId || !draft?.characterId || !draft.characterSource) {
+      setErrorMessage("프로젝트 정보가 없습니다. 다시 시작해주세요.");
+      return;
+    }
 
-      await updateProject(resolvedProjectId, {
-        current_stage: 2,
-        idea: idea.trim(),
+    setErrorMessage(null);
+
+    try {
+      await updateProjectMutation.mutateAsync({
+        projectId: resolvedProjectId,
+        payload: {
+          current_stage: 2,
+          idea: idea.trim(),
+        },
       });
 
-      const storyboardPayload = {
+      const storyboard = await storyboardMutation.mutateAsync({
         character_id:
           draft.characterSource === "preset" ? draft.characterId : null,
         custom_character_id:
           draft.characterSource === "custom" ? draft.characterId : null,
         idea: idea.trim(),
         project_id: resolvedProjectId,
-      };
+      });
 
-      console.log("[project-create] createStoryboard payload", storyboardPayload);
-
-      const storyboard = await createStoryboard(storyboardPayload);
-
-      console.log("[project-create] createStoryboard response", storyboard);
-
-      return storyboard;
-    },
-    onSuccess: (storyboard) => {
       updateProjectDraft({
         idea: idea.trim(),
         projectId: resolvedProjectId,
@@ -89,25 +87,18 @@ export function ProjectIdeaPage({ projectId }: ProjectIdeaPageProps) {
           resolvedProjectId
         )}&storyboardId=${encodeURIComponent(storyboard.id)}`
       );
-    },
-    onError: (error) => {
+    } catch (error) {
       if (error instanceof ApiError) {
-        console.error("[project-create] createStoryboard api error", {
-          errors: error.errors,
-          message: error.message,
-          status: error.status,
-        });
-      } else {
-        console.error("[project-create] createStoryboard unknown error", error);
+        console.error("[project-create] api error", error);
       }
-
       setErrorMessage(
         error instanceof Error ? error.message : "스토리보드 생성에 실패했습니다."
       );
-    },
-  });
+    }
+  }
 
   const isIdeaValid = idea.trim().length > 0;
+  const isPending = updateProjectMutation.isPending || storyboardMutation.isPending;
 
   return (
     <ProjectCreateShell
@@ -150,13 +141,10 @@ export function ProjectIdeaPage({ projectId }: ProjectIdeaPageProps) {
           <Button
             className="min-w-[112px]"
             size="tiny"
-            disabled={!isIdeaValid || storyboardMutation.isPending}
-            onClick={() => {
-              setErrorMessage(null);
-              storyboardMutation.mutate();
-            }}
+            disabled={!isIdeaValid || isPending}
+            onClick={() => void handleCreateStoryboard()}
           >
-            {storyboardMutation.isPending ? (
+            {isPending ? (
               <span className="flex items-center gap-2">
                 <span className="inline-flex size-3 animate-spin rounded-full border-2 border-current border-r-transparent" />
                 생성 중

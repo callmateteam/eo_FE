@@ -1,9 +1,16 @@
-import type {
-  DashboardCreationTrend,
-  DashboardTrendKeyword,
-} from "@/lib/api/dashboard";
-
 import { Icon } from "@/components/ui/Icon";
+
+type DashboardCreationTrend = {
+  keyword: string;
+  rank: number;
+  count: number;
+};
+
+type DashboardTrendKeyword = {
+  keyword: string;
+  rank: number;
+  avg_views: number;
+};
 
 type TrendSectionProps = {
   creationTrends: DashboardCreationTrend[];

@@ -1,20 +1,22 @@
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
-type ApiFetchOptions = Omit<RequestInit, "body"> & {
-  body?: BodyInit | Record<string, unknown>;
-  retryOnAuthError?: boolean;
-};
+export function getApiBaseUrl() {
+  return API_BASE_URL;
+}
 
-type ErrorItem = {
-  field?: string | null;
-  message: string;
-};
+// ---------------------------------------------------------------------------
+// Error classes
+// ---------------------------------------------------------------------------
 
 export class ApiError extends Error {
   status: number;
-  errors: ErrorItem[];
+  errors: { field?: string; message: string }[];
 
-  constructor(message: string, status: number, errors: ErrorItem[] = []) {
+  constructor(
+    status: number,
+    message: string,
+    errors: { field?: string; message: string }[] = [],
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -23,161 +25,142 @@ export class ApiError extends Error {
 }
 
 export class NetworkError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(cause?: unknown) {
+    super("네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.");
     this.name = "NetworkError";
+    this.cause = cause;
   }
 }
 
-let refreshPromise: Promise<boolean> | null = null;
+// ---------------------------------------------------------------------------
+// Token refresh singleton
+// ---------------------------------------------------------------------------
 
-export function getApiBaseUrl() {
-  if (!apiBaseUrl) {
-    throw new Error("NEXT_PUBLIC_API_BASE_URL is not configured.");
+let refreshPromise: Promise<void> | null = null;
+
+async function refreshToken(): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new ApiError(res.status, "세션이 만료되었습니다. 다시 로그인해주세요.");
   }
-
-  return apiBaseUrl;
 }
 
-export function getWebSocketBaseUrl() {
-  const baseUrl = getApiBaseUrl();
+// ---------------------------------------------------------------------------
+// Core fetch wrapper
+// ---------------------------------------------------------------------------
 
-  if (baseUrl.startsWith("https://")) {
-    return `wss://${baseUrl.slice("https://".length)}`;
-  }
-
-  if (baseUrl.startsWith("http://")) {
-    return `ws://${baseUrl.slice("http://".length)}`;
-  }
-
-  throw new Error("NEXT_PUBLIC_API_BASE_URL must start with http:// or https://");
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const prototype = Object.getPrototypeOf(value);
-
-  return prototype === Object.prototype || prototype === null;
-}
-
-function normalizeErrorPayload(payload: unknown) {
-  if (!isPlainObject(payload)) {
-    return {
-      errors: [] as ErrorItem[],
-      message: "요청을 처리하지 못했습니다.",
-    };
-  }
-
-  if (typeof payload.detail === "string") {
-    return {
-      errors: Array.isArray(payload.errors) ? (payload.errors as ErrorItem[]) : [],
-      message: payload.detail,
-    };
-  }
-
-  if (isPlainObject(payload.detail)) {
-    return {
-      errors: Array.isArray(payload.detail.errors)
-        ? (payload.detail.errors as ErrorItem[])
-        : [],
-      message:
-        typeof payload.detail.detail === "string"
-          ? payload.detail.detail
-          : "요청을 처리하지 못했습니다.",
-    };
-  }
-
-  return {
-    errors: [],
-    message: "요청을 처리하지 못했습니다.",
-  };
-}
-
-async function parseError(response: Response) {
-  let payload: unknown = null;
-
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
-  }
-
-  const { errors, message } = normalizeErrorPayload(payload);
-
-  return new ApiError(message, response.status, errors);
-}
-
-async function refreshAccessToken() {
-  if (!refreshPromise) {
-    refreshPromise = fetch(`${getApiBaseUrl()}/api/auth/refresh`, {
-      credentials: "include",
-      method: "POST",
-    })
-      .then((response) => response.ok)
-      .catch(() => false)
-      .finally(() => {
-        refreshPromise = null;
-      });
-  }
-
-  return refreshPromise;
-}
+type ApiFetchOptions = {
+  raw?: boolean;
+  _isRetry?: boolean;
+};
 
 export async function apiFetch<T>(
+  method: "GET" | "POST" | "PATCH" | "DELETE",
   path: string,
-  options: ApiFetchOptions = {}
+  body?: unknown | FormData,
+  options?: ApiFetchOptions,
 ): Promise<T> {
-  const { body, headers, retryOnAuthError = true, ...rest } = options;
-  const requestHeaders = new Headers(headers);
-  let requestBody: BodyInit | undefined;
+  const url = `${API_BASE_URL}${path}`;
 
-  if (body !== undefined) {
-    if (isPlainObject(body)) {
-      requestHeaders.set("Content-Type", "application/json");
-      requestBody = JSON.stringify(body);
-    } else {
-      requestBody = body;
-    }
+  const headers: Record<string, string> = {};
+
+  if (body && !(body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
   }
 
   let response: Response;
 
   try {
-    response = await fetch(`${getApiBaseUrl()}${path}`, {
-      ...rest,
-      body: requestBody,
+    response = await fetch(url, {
+      method,
+      headers,
       credentials: "include",
-      headers: requestHeaders,
+      body: body
+        ? body instanceof FormData
+          ? body
+          : JSON.stringify(body)
+        : undefined,
     });
   } catch (error) {
-    throw new NetworkError(
-      error instanceof Error && error.message
-        ? "네트워크 요청에 실패했습니다. 브라우저 확장 프로그램 또는 네트워크 환경을 확인한 뒤 다시 시도해주세요."
-        : "서버에 연결하지 못했습니다. 잠시 후 다시 시도해주세요."
-    );
+    throw new NetworkError(error);
   }
 
-  if (response.status === 401 && retryOnAuthError) {
-    const refreshed = await refreshAccessToken();
+  // 401 → try refresh once
+  if (response.status === 401 && !options?._isRetry) {
+    try {
+      if (!refreshPromise) {
+        refreshPromise = refreshToken().finally(() => {
+          refreshPromise = null;
+        });
+      }
 
-    if (refreshed) {
-      return apiFetch<T>(path, {
-        ...options,
-        retryOnAuthError: false,
-      });
+      await refreshPromise;
+      return apiFetch<T>(method, path, body, { ...options, _isRetry: true });
+    } catch {
+      // refresh failed — throw original 401
     }
   }
 
-  if (!response.ok) {
-    throw await parseError(response);
+  // raw response (for binary downloads)
+  if (options?.raw) {
+    return response as unknown as T;
   }
 
+  // 204 No Content
   if (response.status === 204) {
-    return undefined as T;
+    return null as T;
   }
 
-  return response.json() as Promise<T>;
+  // Parse JSON
+  let data: unknown;
+
+  try {
+    data = await response.json();
+  } catch {
+    if (!response.ok) {
+      throw new ApiError(response.status, "서버 응답을 처리할 수 없습니다.");
+    }
+    return null as T;
+  }
+
+  if (!response.ok) {
+    const body = data as Record<string, unknown> | undefined;
+    const message =
+      (body?.message as string) ??
+      (body?.detail as string) ??
+      `요청에 실패했습니다. (${response.status})`;
+
+    const fieldErrors: { field?: string; message: string }[] = [];
+
+    // Handle { detail: [{ loc, msg, type }] } (FastAPI validation)
+    if (Array.isArray(body?.detail)) {
+      for (const item of body.detail as { loc?: string[]; msg?: string }[]) {
+        const field = item.loc?.at(-1);
+        fieldErrors.push({ field, message: item.msg ?? "" });
+      }
+    }
+
+    // Handle { errors: { field: message } } or { errors: [{ field, message }] }
+    if (body?.errors) {
+      if (Array.isArray(body.errors)) {
+        for (const item of body.errors as { field?: string; message: string }[]) {
+          fieldErrors.push(item);
+        }
+      } else if (typeof body.errors === "object") {
+        for (const [field, msg] of Object.entries(
+          body.errors as Record<string, string>,
+        )) {
+          fieldErrors.push({ field, message: msg });
+        }
+      }
+    }
+
+    throw new ApiError(response.status, message, fieldErrors);
+  }
+
+  return data as T;
 }

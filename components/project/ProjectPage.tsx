@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation";
 import { ApiError, NetworkError } from "@/lib/api/client";
 import { ProjectCard } from "@/components/ui/ProjectCard";
 import { ProjectCreateCard } from "@/components/ui/ProjectCreateCard";
-import { useProjects } from "@/hooks/useProjects";
+import { useProjects, useDeleteProject } from "@/hooks/useProjects";
 import { getProjectCardImageSrc } from "@/lib/project-card";
 import { resolveProjectResumePath } from "@/lib/project-resume";
 
 export function ProjectPage() {
   const router = useRouter();
   const projectsQuery = useProjects();
+  const deleteProjectMutation = useDeleteProject();
   const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const projects = useMemo(
@@ -61,7 +62,7 @@ export function ProjectPage() {
               characterName={project.character_name}
               className={pendingProjectId === project.id ? "opacity-70" : undefined}
               imageSrc={getProjectCardImageSrc(project.character_image, index)}
-              onDelete={() => undefined}
+              onDelete={() => deleteProjectMutation.mutate(project.id)}
               onEdit={() => {
                 void handleEdit(project.id);
               }}

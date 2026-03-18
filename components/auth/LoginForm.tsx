@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -14,7 +13,7 @@ import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthField } from "@/components/auth/AuthField";
 import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 import { Button } from "@/components/ui/Button";
-import { login } from "@/lib/api/auth";
+import { useLogin } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/api/client";
 
 const loginSchema = z.object({
@@ -26,7 +25,6 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
   const { control, handleSubmit, setError } = useForm<LoginFormValues>({
     defaultValues: {
@@ -35,31 +33,24 @@ export function LoginForm() {
     },
     resolver: zodResolver(loginSchema),
   });
-  const loginMutation = useMutation({
-    mutationFn: login,
-  });
+  const loginMutation = useLogin();
 
   async function onSubmit(values: LoginFormValues) {
     setFormError(null);
 
     try {
       await loginMutation.mutateAsync(values);
-      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       router.replace("/dashboard");
     } catch (error) {
       if (error instanceof ApiError) {
         for (const item of error.errors) {
           if (item.field === "username" || item.field === "password") {
-            setError(item.field, {
-              message: item.message,
-            });
+            setError(item.field, { message: item.message });
           }
         }
-
         setFormError(error.message);
         return;
       }
-
       setFormError("로그인 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     }
   }

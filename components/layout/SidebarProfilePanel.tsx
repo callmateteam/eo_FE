@@ -3,11 +3,10 @@
 import { useEffect, useRef, type RefObject } from "react";
 
 import Image from "next/image";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { logout } from "@/lib/api/auth";
+import { useLogout } from "@/hooks/useAuth";
 import { socialAssets } from "@/lib/assets";
 
 type SidebarProfilePanelProps = {
@@ -68,17 +67,10 @@ export function SidebarProfilePanel({
 }: SidebarProfilePanelProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const previousPathnameRef = useRef(pathname);
   const { data: user } = useCurrentUser();
-  const logoutMutation = useMutation({
-    mutationFn: logout,
-    onSuccess: async () => {
-      await queryClient.setQueryData(["auth", "me"], null);
-      router.replace("/login");
-    },
-  });
+  const logoutMutation = useLogout();
 
   useEffect(() => {
     if (previousPathnameRef.current !== pathname && isOpen) {
@@ -125,6 +117,11 @@ export function SidebarProfilePanel({
   }
 
   const initials = user?.name?.trim().charAt(0) || "하";
+
+  async function handleLogout() {
+    await logoutMutation.mutateAsync();
+    router.replace("/login");
+  }
 
   return (
     <div
@@ -177,7 +174,7 @@ export function SidebarProfilePanel({
         <button
           className="mt-4 flex w-full cursor-pointer items-center gap-3 text-left text-[16px] leading-none font-medium text-white disabled:cursor-not-allowed"
           disabled={logoutMutation.isPending}
-          onClick={() => logoutMutation.mutate()}
+          onClick={() => void handleLogout()}
           type="button"
         >
           <svg

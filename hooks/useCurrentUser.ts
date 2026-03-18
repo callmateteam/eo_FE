@@ -1,13 +1,13 @@
-"use client";
-
 import { useQuery } from "@tanstack/react-query";
 
-import { getCurrentUserOrNull } from "@/lib/api/auth";
+import { getMe } from "@/lib/api/auth";
+import { queryKeys } from "@/hooks/query-keys";
 
 export function useCurrentUser() {
   return useQuery({
-    queryFn: getCurrentUserOrNull,
-    queryKey: ["auth", "me"],
-    staleTime: 60_000,
+    queryKey: queryKeys.auth.me,
+    queryFn: () => getMe(),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 }

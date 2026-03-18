@@ -3,14 +3,21 @@
 import { startTransition, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { ApiError, NetworkError } from "@/lib/api/client";
-import type { DashboardProject } from "@/lib/api/dashboard";
+import { useDeleteProject } from "@/hooks/useProjects";
 import { getProjectCardImageSrc } from "@/lib/project-card";
 import { resolveProjectResumePath } from "@/lib/project-resume";
 
 import { Icon } from "@/components/ui/Icon";
 import { ProjectCard } from "@/components/ui/ProjectCard";
 import { ProjectCreateCard } from "@/components/ui/ProjectCreateCard";
+
+type DashboardProject = {
+  id: string;
+  title: string;
+  character_name: string;
+  character_image: string;
+  progress?: number;
+};
 
 type ProjectCarouselProps = {
   projects: DashboardProject[];
@@ -19,6 +26,7 @@ type ProjectCarouselProps = {
 export function ProjectCarousel({ projects }: ProjectCarouselProps) {
   const router = useRouter();
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const deleteProjectMutation = useDeleteProject();
   const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hasProjects = projects.length > 0;
@@ -48,7 +56,7 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
       });
     } catch (error) {
       setErrorMessage(
-        error instanceof ApiError || error instanceof NetworkError || error instanceof Error
+        error instanceof Error
           ? error.message
           : "프로젝트 수정 화면으로 이동하지 못했습니다."
       );
@@ -101,7 +109,7 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
               characterName={project.character_name}
               className={pendingProjectId === project.id ? "opacity-70" : undefined}
               imageSrc={getProjectCardImageSrc(project.character_image, index)}
-              onDelete={() => undefined}
+              onDelete={() => deleteProjectMutation.mutate(project.id)}
               onEdit={() => {
                 void handleEdit(project.id);
               }}

@@ -11,8 +11,8 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
+import { getVideoInfo } from "@/lib/api/video-edit";
 import { ApiError } from "@/lib/api/client";
-import { getStoryboardVideoInfo } from "@/lib/api/storyboards";
 
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -93,17 +93,22 @@ export function ProjectToastProvider({ children }: PropsWithChildren) {
 
     const poll = async () => {
       try {
-        const videoInfo = await getStoryboardVideoInfo(tracking.storyboardId);
+        const info = await getVideoInfo(tracking.storyboardId);
+
         setCompletion({
           projectId: tracking.projectId,
           storyboardId: tracking.storyboardId,
-          title: videoInfo.title,
+          title: info.title,
         });
         setTracking(null);
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) {
+          // Still rendering, keep polling
           return;
         }
+
+        // Unexpected error, stop tracking
+        setTracking(null);
       }
     };
 
