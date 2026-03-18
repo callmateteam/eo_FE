@@ -3,12 +3,13 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/Button";
+import { NetworkError } from "@/lib/api/client";
 import { Icon } from "@/components/ui/Icon";
 import { ScriptInputField } from "@/components/ui/ScriptInputField";
 import { ProjectCreateShell } from "@/components/project-create/ProjectCreateShell";
@@ -21,6 +22,7 @@ import {
   undoVideoEdit,
   updateVideoEdit,
   type EditData,
+  type EditSceneItem,
   type StoryboardScene,
   type SubtitleItem,
   type SubtitleStyle,
@@ -32,12 +34,14 @@ type ProjectEditPageProps = {
   storyboardId?: string;
 };
 
-type SceneEditorUiState = {
-  align: "left" | "center" | "right";
-  bold: boolean;
-  italic: boolean;
-  underline: boolean;
-};
+const transitionOptions = [
+  { label: "없음", value: "none" },
+  { label: "페이드", value: "fade" },
+  { label: "디졸브", value: "dissolve" },
+  { label: "슬라이드 좌", value: "slide_left" },
+  { label: "슬라이드 업", value: "slide_up" },
+  { label: "와이프", value: "wipe" },
+] as const;
 
 const defaultSubtitleStyle: SubtitleStyle = {
   animation: "none",
@@ -61,15 +65,15 @@ function getSceneDuration(scene: StoryboardScene) {
   return Number.isFinite(scene.duration) && scene.duration > 0 ? scene.duration : 5;
 }
 
-function ensureSceneSubtitle(editData: EditData, scene: StoryboardScene) {
-  const existingSubtitle = editData.subtitles?.find(
-    (subtitle) => subtitle.scene_id === scene.id
-  );
+function formatTime(seconds: number) {
+  const safeSeconds = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = Math.floor(safeSeconds % 60);
 
-  if (existingSubtitle) {
-    return existingSubtitle;
-  }
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+}
 
+function createDefaultSubtitle(scene: StoryboardScene) {
   return {
     end: getSceneDuration(scene),
     scene_id: scene.id,
@@ -77,6 +81,31 @@ function ensureSceneSubtitle(editData: EditData, scene: StoryboardScene) {
     style: defaultSubtitleStyle,
     text: scene.content,
   } satisfies SubtitleItem;
+}
+
+function getSceneSubtitleEntries(editData: EditData, scene: StoryboardScene) {
+  return (editData.subtitles ?? [])
+    .map((subtitle, index) => ({
+      index,
+      subtitle,
+    }))
+    .filter((entry) => entry.subtitle.scene_id === scene.id)
+    .sort((left, right) => left.subtitle.start - right.subtitle.start);
+}
+
+function getSceneEditItem(editData: EditData, scene: StoryboardScene) {
+  return editData.scenes?.find((entry) => entry.scene_id === scene.id) ?? null;
+}
+
+function createDefaultSceneEdit(scene: StoryboardScene): EditSceneItem {
+  return {
+    order: scene.scene_order,
+    scene_id: scene.id,
+    speed: 1,
+    transition: "none",
+    trim_end: getSceneDuration(scene),
+    trim_start: 0,
+  };
 }
 
 function previewSubtitleStyle(style?: SubtitleStyle) {
@@ -87,6 +116,12 @@ function previewSubtitleStyle(style?: SubtitleStyle) {
     color: style?.color ?? "#FFFFFF",
     fontFamily: style?.font ?? "Pretendard",
     fontSize: `${style?.font_size ?? 24}px`,
+    justifyContent:
+      style?.position === "top"
+        ? "flex-start"
+        : style?.position === "center"
+          ? "center"
+          : "flex-end",
   };
 }
 
@@ -143,13 +178,19 @@ export function ProjectEditPage({
   const [selectedSceneId, setSelectedSceneId] = useState("");
   const [localEditData, setLocalEditData] = useState<EditData | null>(null);
   const [isScriptPanelOpen, setIsScriptPanelOpen] = useState(false);
+  const [editingSubtitleIndex, setEditingSubtitleIndex] = useState<number | null>(null);
   const [panelText, setPanelText] = useState("");
+  const [panelStart, setPanelStart] = useState("0");
+  const [panelEnd, setPanelEnd] = useState("5");
   const [panelStyle, setPanelStyle] = useState<SubtitleStyle>(defaultSubtitleStyle);
-  const [applyAllScenes, setApplyAllScenes] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [sceneEditorUiState, setSceneEditorUiState] = useState<
-    Record<string, SceneEditorUiState>
-  >({});
+  const [isMuted, setIsMuted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [playerDuration, setPlayerDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const editData = localEditData ?? editQuery.data?.edit_data ?? null;
   const scenes = useMemo(() => storyboardQuery.data?.scenes ?? [], [storyboardQuery.data?.scenes]);
@@ -158,24 +199,35 @@ export function ProjectEditPage({
     [scenes, selectedSceneId]
   );
 
+  const selectedSceneSubtitleEntries =
+    selectedScene && editData ? getSceneSubtitleEntries(editData, selectedScene) : [];
   const selectedSubtitle =
+    selectedSceneSubtitleEntries[0]?.subtitle ??
+    (selectedScene ? createDefaultSubtitle(selectedScene) : null);
+  const selectedSceneEdit =
     selectedScene && editData
-      ? ensureSceneSubtitle(editData, selectedScene)
+      ? getSceneEditItem(editData, selectedScene) ?? createDefaultSceneEdit(selectedScene)
       : null;
 
-  const editorUiState = selectedScene
-    ? sceneEditorUiState[selectedScene.id] ?? {
-        align: "center",
-        bold: false,
-        italic: false,
-        underline: false,
-      }
-    : {
-        align: "center" as const,
-        bold: false,
-        italic: false,
-        underline: false,
-      };
+  useEffect(() => {
+    const video = videoRef.current;
+
+    if (!video) {
+      return;
+    }
+
+    video.muted = isMuted;
+  }, [isMuted]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+
+    if (!video) {
+      return;
+    }
+
+    video.playbackRate = playbackRate;
+  }, [playbackRate, selectedScene?.id]);
 
   const undoMutation = useMutation({
     mutationFn: async () => {
@@ -196,7 +248,8 @@ export function ProjectEditPage({
         throw new Error("렌더링할 편집 데이터가 없습니다.");
       }
 
-      await updateVideoEdit(resolvedStoryboardId, editData);
+      const response = await updateVideoEdit(resolvedStoryboardId, editData);
+      setLocalEditData(response.edit_data);
       await updateProject(projectId, {
         current_stage: 4,
         storyboard_id: resolvedStoryboardId,
@@ -223,14 +276,40 @@ export function ProjectEditPage({
     },
   });
 
-  const openScriptPanel = () => {
-    if (!selectedScene || !selectedSubtitle) {
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!resolvedStoryboardId || !editData) {
+        throw new Error("저장할 편집 데이터가 없습니다.");
+      }
+
+      return updateVideoEdit(resolvedStoryboardId, editData);
+    },
+    onSuccess: (response) => {
+      setLocalEditData(response.edit_data);
+      setSaveMessage("편집 내용이 저장되었습니다.");
+    },
+    onError: (error) => {
+      setSaveMessage(null);
+      setErrorMessage(error instanceof Error ? error.message : "편집 저장에 실패했습니다.");
+    },
+  });
+
+  const openScriptPanel = (subtitleIndex?: number) => {
+    if (!selectedScene) {
       return;
     }
 
-    setPanelText(selectedSubtitle.text);
-    setPanelStyle(selectedSubtitle.style ?? defaultSubtitleStyle);
-    setApplyAllScenes(false);
+    const nextSubtitle =
+      subtitleIndex === undefined || subtitleIndex < 0 || !editData?.subtitles?.[subtitleIndex]
+        ? createDefaultSubtitle(selectedScene)
+        : editData.subtitles[subtitleIndex];
+
+    setEditingSubtitleIndex(subtitleIndex ?? null);
+    setPanelText(nextSubtitle.text);
+    setPanelStart(String(nextSubtitle.start));
+    setPanelEnd(String(nextSubtitle.end));
+    setPanelStyle(nextSubtitle.style ?? defaultSubtitleStyle);
+    setSaveMessage(null);
     setIsScriptPanelOpen(true);
   };
 
@@ -239,32 +318,95 @@ export function ProjectEditPage({
       return;
     }
 
+    const sceneDuration = getSceneDuration(selectedScene);
+    const normalizedStart = Math.max(
+      0,
+      Math.min(sceneDuration, Number(panelStart) || 0)
+    );
+    const normalizedEnd = Math.max(
+      normalizedStart,
+      Math.min(sceneDuration, Number(panelEnd) || sceneDuration)
+    );
     const nextSubtitles = [...(editData.subtitles ?? [])];
-    const targetScenes = applyAllScenes ? scenes : [selectedScene];
+    const nextSubtitle: SubtitleItem = {
+      end: normalizedEnd,
+      scene_id: selectedScene.id,
+      start: normalizedStart,
+      style: panelStyle,
+      text: panelText.trim(),
+    };
 
-    targetScenes.forEach((scene) => {
-      const currentIndex = nextSubtitles.findIndex((item) => item.scene_id === scene.id);
-      const baseSubtitle = ensureSceneSubtitle(editData, scene);
-      const nextSubtitle: SubtitleItem = {
-        ...baseSubtitle,
-        scene_id: scene.id,
-        style: panelStyle,
-        text: applyAllScenes ? baseSubtitle.text : panelText,
-      };
-
-      if (currentIndex >= 0) {
-        nextSubtitles[currentIndex] = nextSubtitle;
-      } else {
-        nextSubtitles.push(nextSubtitle);
-      }
-    });
+    if (editingSubtitleIndex !== null && nextSubtitles[editingSubtitleIndex]) {
+      nextSubtitles[editingSubtitleIndex] = nextSubtitle;
+    } else {
+      nextSubtitles.push(nextSubtitle);
+    }
 
     setLocalEditData({
       ...editData,
       subtitles: nextSubtitles,
     });
+    setSaveMessage(null);
+    setEditingSubtitleIndex(null);
     setIsScriptPanelOpen(false);
   };
+
+  function handleDeleteSubtitle(index: number) {
+    if (!editData) {
+      return;
+    }
+
+    setLocalEditData({
+      ...editData,
+      subtitles: (editData.subtitles ?? []).filter((_, subtitleIndex) => subtitleIndex !== index),
+    });
+    setSaveMessage(null);
+    setEditingSubtitleIndex(null);
+    setIsScriptPanelOpen(false);
+  }
+
+  function updateSelectedSceneEdit(
+    updater: (current: EditSceneItem) => EditSceneItem
+  ) {
+    if (!editData || !selectedScene) {
+      return;
+    }
+
+    const currentSceneEdit =
+      getSceneEditItem(editData, selectedScene) ?? createDefaultSceneEdit(selectedScene);
+    const nextSceneEdit = updater(currentSceneEdit);
+    const nextScenes = [...(editData.scenes ?? [])];
+    const targetIndex = nextScenes.findIndex((entry) => entry.scene_id === selectedScene.id);
+
+    if (targetIndex >= 0) {
+      nextScenes[targetIndex] = nextSceneEdit;
+    } else {
+      nextScenes.push(nextSceneEdit);
+    }
+
+    setLocalEditData({
+      ...editData,
+      scenes: nextScenes,
+    });
+    setSaveMessage(null);
+  }
+
+  async function handlePlayToggle() {
+    const video = videoRef.current;
+
+    if (!video) {
+      return;
+    }
+
+    if (video.paused) {
+      await video.play();
+      setIsPlaying(true);
+      return;
+    }
+
+    video.pause();
+    setIsPlaying(false);
+  }
 
   if (projectQuery.isLoading || storyboardQuery.isLoading || editQuery.isLoading) {
     return (
@@ -277,6 +419,43 @@ export function ProjectEditPage({
           <div className="flex items-center gap-3 text-[#d7d7dc]">
             <span className="inline-flex size-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
             <span className="text-[14px] font-medium">편집 화면을 준비하고 있습니다.</span>
+          </div>
+        </div>
+      </ProjectCreateShell>
+    );
+  }
+
+  if (editQuery.isError) {
+    const editLoadMessage =
+      editQuery.error instanceof NetworkError
+        ? editQuery.error.message
+        : editQuery.error instanceof Error
+          ? editQuery.error.message
+          : "편집 데이터를 불러오지 못했습니다.";
+
+    return (
+      <ProjectCreateShell
+        currentStep={3}
+        projectTitle={projectQuery.data?.title ?? "?꾨줈?앺듃紐?"}
+        title="?곸긽 ?앹꽦 諛??몄쭛"
+      >
+        <div className="flex min-h-[420px] items-center justify-center">
+          <div className="flex w-full max-w-[520px] flex-col items-center rounded-[22px] border border-[#2b2b31] bg-[#121214] px-6 py-7 text-center">
+            <p className="text-[16px] font-semibold text-white">
+              편집 화면을 준비하지 못했습니다.
+            </p>
+            <p className="pt-3 text-[14px] leading-[1.6] text-[#b7b7bf]">
+              {editLoadMessage}
+            </p>
+            <Button
+              className="mt-6 min-w-[120px]"
+              size="tiny"
+              onClick={() => {
+                void editQuery.refetch();
+              }}
+            >
+              다시 시도
+            </Button>
           </div>
         </div>
       </ProjectCreateShell>
@@ -296,6 +475,18 @@ export function ProjectEditPage({
           </Button>
           <Button
             size="tiny"
+            variant="outlined"
+            disabled={saveMutation.isPending || !editData}
+            onClick={() => {
+              setErrorMessage(null);
+              setSaveMessage(null);
+              saveMutation.mutate();
+            }}
+          >
+            {saveMutation.isPending ? "저장 중" : "저장"}
+          </Button>
+          <Button
+            size="tiny"
             disabled={renderMutation.isPending || !editData}
             onClick={() => {
               setErrorMessage(null);
@@ -312,23 +503,47 @@ export function ProjectEditPage({
           {errorMessage}
         </p>
       ) : null}
+      {saveMessage ? (
+        <p className="mx-auto mb-[18px] max-w-[1162px] rounded-[14px] border border-[#284638] bg-[rgba(40,70,56,0.2)] px-[18px] py-[14px] text-[14px] text-[#b8ffd7]">
+          {saveMessage}
+        </p>
+      ) : null}
 
       <div className="mx-auto w-full max-w-[1162px]">
         <div className="flex justify-center">
           <div className="relative h-[404px] w-[226px] overflow-hidden rounded-[18px] bg-[#f5f2e9]">
-            <img
-              alt={selectedScene?.title ?? "scene"}
-              className="h-full w-full object-cover"
-              src={
-                selectedScene?.image_url ||
-                "/assets/landing/cards/storyboard-cover-1.png"
-              }
-            />
+            {selectedScene?.video_url ? (
+              <video
+                key={selectedScene.id}
+                ref={videoRef}
+                className="h-full w-full object-cover"
+                onEnded={() => setIsPlaying(false)}
+                onLoadedMetadata={(event) => {
+                  setPlayerDuration(event.currentTarget.duration || getSceneDuration(selectedScene));
+                  setCurrentTime(event.currentTarget.currentTime || 0);
+                  event.currentTarget.playbackRate = selectedSceneEdit?.speed ?? playbackRate;
+                }}
+                onPause={() => setIsPlaying(false)}
+                onPlay={() => setIsPlaying(true)}
+                onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+                playsInline
+                src={selectedScene.video_url}
+              />
+            ) : (
+              <img
+                alt={selectedScene?.title ?? "scene"}
+                className="h-full w-full object-cover"
+                src={
+                  selectedScene?.image_url ||
+                  "/assets/landing/cards/storyboard-cover-1.png"
+                }
+              />
+            )}
             <div
-              className="absolute bottom-[14px] left-[16px] right-[16px] rounded-[8px] px-[12px] py-[6px] text-center font-semibold"
+              className="absolute inset-x-[16px] bottom-[14px] flex rounded-[8px] px-[12px] py-[6px] font-semibold"
               style={previewSubtitleStyle(selectedSubtitle?.style)}
             >
-              {selectedSubtitle?.text ?? "script"}
+              <span className="w-full text-center">{selectedSubtitle?.text ?? "script"}</span>
             </div>
           </div>
         </div>
@@ -336,17 +551,41 @@ export function ProjectEditPage({
         <div className="mt-[38px] rounded-[22px] border border-[#25252b] bg-[#121214] px-[16px] py-[14px]">
           <div className="flex items-center justify-between border-b border-[#222228] pb-[12px]">
             <div className="flex items-center gap-[14px] text-[#d7d7dc]">
-              <button className="text-white" type="button">
-                <Icon className="size-5" name="play" />
-              </button>
-              <span className="text-[13px] font-medium">00:18 / 01:38</span>
               <button
-                className="rounded-full border border-[#2f2f35] px-[8px] py-[2px] text-[12px] font-medium text-[#a8a8b1]"
+                className="text-white"
+                disabled={!selectedScene?.video_url}
+                onClick={() => {
+                  void handlePlayToggle();
+                }}
                 type="button"
               >
-                1x
+                <Icon className="size-5" name={isPlaying ? "pause" : "play"} />
               </button>
-              <button className="text-[#a8a8b1]" type="button">
+              <span className="text-[13px] font-medium">
+                {formatTime(currentTime)} /{" "}
+                {formatTime(playerDuration || (selectedScene ? getSceneDuration(selectedScene) : 0))}
+              </span>
+              <button
+                className="rounded-full border border-[#2f2f35] px-[8px] py-[2px] text-[12px] font-medium text-[#a8a8b1]"
+                onClick={() => {
+                  const nextRate = playbackRate === 1 ? 1.5 : playbackRate === 1.5 ? 2 : 1;
+                  setPlaybackRate(nextRate);
+                  if (selectedScene) {
+                    updateSelectedSceneEdit((current) => ({
+                      ...current,
+                      speed: nextRate,
+                    }));
+                  }
+                }}
+                type="button"
+              >
+                {playbackRate}x
+              </button>
+              <button
+                className="text-[#a8a8b1]"
+                onClick={() => setIsMuted((current) => !current)}
+                type="button"
+              >
                 <Icon className="size-4" name="sound" />
               </button>
             </div>
@@ -365,17 +604,34 @@ export function ProjectEditPage({
               <button className="text-[#cfcfd5]" type="button">
                 <Icon className="size-5" name="redo" />
               </button>
-              <div className="flex items-center gap-3">
-                <span className="h-[2px] w-[18px] bg-[#d7d7dc]" />
-                <span className="h-[4px] w-[36px] rounded-full bg-[#d7d7dc]" />
-                <span className="inline-flex size-[10px] rounded-full bg-[#d7d7dc]" />
-              </div>
+              <input
+                className="w-[140px] accent-[#d7d7dc]"
+                max={playerDuration || (selectedScene ? getSceneDuration(selectedScene) : 0)}
+                min={0}
+                onChange={(event) => {
+                  const nextTime = Number(event.target.value);
+                  const video = videoRef.current;
+
+                  setCurrentTime(nextTime);
+
+                  if (video) {
+                    video.currentTime = nextTime;
+                  }
+                }}
+                step="0.1"
+                type="range"
+                value={Math.min(
+                  currentTime,
+                  playerDuration || (selectedScene ? getSceneDuration(selectedScene) : 0)
+                )}
+              />
             </div>
           </div>
 
           <div className="mt-[16px] flex gap-[10px] overflow-x-auto pb-[8px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {scenes.map((scene) => {
-              const subtitle = editData ? ensureSceneSubtitle(editData, scene) : null;
+              const subtitleEntries = editData ? getSceneSubtitleEntries(editData, scene) : [];
+              const subtitle = subtitleEntries[0]?.subtitle ?? createDefaultSubtitle(scene);
               const isSelected = scene.id === selectedScene?.id;
 
               return (
@@ -406,28 +662,113 @@ export function ProjectEditPage({
                       #{scene.scene_order}
                     </p>
                   </button>
-                  <ScriptInputField
-                    className="mt-[6px] w-full truncate rounded-full bg-[#2b2b31] text-left text-[#d7d7dc]"
-                    state={isSelected ? "selected" : "default"}
-                    onClick={() => {
-                      setSelectedSceneId(scene.id);
-                      setTimeout(() => {
-                        openScriptPanel();
-                      }, 0);
-                    }}
-                  >
-                    {subtitle?.text || "스크립트"}
-                  </ScriptInputField>
+                  <div className="mt-[6px] rounded-[12px] bg-[#2b2b31] px-[10px] py-[8px] text-left">
+                    <p className="truncate text-[12px] font-medium text-[#d7d7dc]">
+                      {subtitle?.text || "스크립트 없음"}
+                    </p>
+                    <p className="pt-[4px] text-[11px] text-[#8f8f98]">
+                      {subtitleEntries.length}개
+                    </p>
+                  </div>
                 </div>
               );
             })}
           </div>
+
+          {selectedScene ? (
+            <div className="mt-[18px] rounded-[18px] border border-[#25252b] bg-[#16161a] px-[16px] py-[14px]">
+              <div className="grid gap-3 border-b border-[#25252b] pb-[16px] md:grid-cols-2">
+                <label className="flex flex-col gap-2 text-[12px] font-medium text-[#b7b7bf]">
+                  재생 속도
+                  <select
+                    className="h-[44px] rounded-[10px] border border-[#303038] bg-[#121214] px-[12px] text-[14px] text-white outline-none"
+                    onChange={(event) =>
+                      updateSelectedSceneEdit((current) => ({
+                        ...current,
+                        speed: Number(event.target.value),
+                      }))
+                    }
+                    value={selectedSceneEdit?.speed ?? 1}
+                  >
+                    {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
+                      <option key={speed} value={speed}>
+                        {speed}x
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-2 text-[12px] font-medium text-[#b7b7bf]">
+                  전환 효과
+                  <select
+                    className="h-[44px] rounded-[10px] border border-[#303038] bg-[#121214] px-[12px] text-[14px] text-white outline-none"
+                    onChange={(event) =>
+                      updateSelectedSceneEdit((current) => ({
+                        ...current,
+                        transition: event.target.value,
+                      }))
+                    }
+                    value={selectedSceneEdit?.transition ?? "none"}
+                  >
+                    {transitionOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="pt-[16px] text-[16px] font-semibold text-white">
+                    #{selectedScene.scene_order} 씬 스크립트
+                  </p>
+                  <p className="pt-[4px] text-[12px] text-[#8f8f98]">
+                    씬별 자막을 추가하고 타이밍을 조정할 수 있습니다.
+                  </p>
+                </div>
+                <Button
+                  className="min-w-[120px]"
+                  size="tiny"
+                  onClick={() => openScriptPanel()}
+                >
+                  스크립트 추가
+                </Button>
+              </div>
+
+              <div className="mt-[14px] flex flex-wrap gap-3">
+                {selectedSceneSubtitleEntries.length > 0 ? (
+                  selectedSceneSubtitleEntries.map((entry) => (
+                    <ScriptInputField
+                      key={`${entry.subtitle.scene_id}-${entry.index}-${entry.subtitle.start}`}
+                      className="h-auto min-h-[48px] min-w-[220px] max-w-[320px] rounded-[14px] bg-[#23232a] px-[14px] py-[10px] text-left"
+                      state="default"
+                      onClick={() => openScriptPanel(entry.index)}
+                    >
+                      <span className="flex flex-col">
+                        <span className="truncate text-[13px] font-medium text-white">
+                          {entry.subtitle.text}
+                        </span>
+                        <span className="pt-[4px] text-[11px] text-[#9f9faa]">
+                          {entry.subtitle.start.toFixed(1)}s - {entry.subtitle.end.toFixed(1)}s
+                        </span>
+                      </span>
+                    </ScriptInputField>
+                  ))
+                ) : (
+                  <div className="rounded-[14px] border border-dashed border-[#31313a] px-[14px] py-[16px] text-[13px] text-[#8f8f98]">
+                    아직 추가된 스크립트가 없습니다.
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
       {isScriptPanelOpen && selectedScene ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(0,0,0,0.45)] px-4">
-          <div className="w-full max-w-[320px] rounded-[24px] bg-[#1f1f24] px-[20px] py-[18px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+          <div className="w-full max-w-[360px] rounded-[24px] bg-[#1f1f24] px-[20px] py-[18px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
             <div className="flex items-center justify-between">
               <h2 className="text-[18px] font-semibold text-white">스크립트</h2>
               <button
@@ -441,10 +782,38 @@ export function ProjectEditPage({
 
             <div className="pt-[14px]">
               <textarea
-                className="h-[80px] w-full resize-none rounded-[14px] border border-[#303038] bg-[#121214] px-[14px] py-[12px] text-[14px] font-medium text-[#f1f1f4] outline-none placeholder:text-[#6d6d76]"
+                className="h-[96px] w-full resize-none rounded-[14px] border border-[#303038] bg-[#121214] px-[14px] py-[12px] text-[14px] font-medium text-[#f1f1f4] outline-none placeholder:text-[#6d6d76]"
                 onChange={(event) => setPanelText(event.target.value)}
+                placeholder="씬에 표시할 스크립트를 입력하세요"
                 value={panelText}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-[12px]">
+              <label className="flex flex-col gap-2 text-[12px] font-medium text-[#b7b7bf]">
+                시작 시간
+                <input
+                  className="h-[44px] rounded-[10px] border border-[#303038] bg-[#121214] px-[12px] text-[14px] text-white outline-none"
+                  max={getSceneDuration(selectedScene)}
+                  min={0}
+                  onChange={(event) => setPanelStart(event.target.value)}
+                  step="0.1"
+                  type="number"
+                  value={panelStart}
+                />
+              </label>
+              <label className="flex flex-col gap-2 text-[12px] font-medium text-[#b7b7bf]">
+                종료 시간
+                <input
+                  className="h-[44px] rounded-[10px] border border-[#303038] bg-[#121214] px-[12px] text-[14px] text-white outline-none"
+                  max={getSceneDuration(selectedScene)}
+                  min={0}
+                  onChange={(event) => setPanelEnd(event.target.value)}
+                  step="0.1"
+                  type="number"
+                  value={panelEnd}
+                />
+              </label>
             </div>
 
             <div className="grid grid-cols-[1fr_90px] gap-3 pt-[12px]">
@@ -484,85 +853,34 @@ export function ProjectEditPage({
 
             <div className="flex items-center justify-between pt-[14px]">
               <ScriptStyleButton
-                alt="bold"
-                isActive={editorUiState.bold}
-                onClick={() =>
-                  setSceneEditorUiState((current) => ({
-                    ...current,
-                    [selectedScene.id]: {
-                      ...editorUiState,
-                      bold: !editorUiState.bold,
-                    },
-                  }))
-                }
-                src={editorFontIconAssets.textBold}
-              />
-              <ScriptStyleButton
-                alt="italic"
-                isActive={editorUiState.italic}
-                onClick={() =>
-                  setSceneEditorUiState((current) => ({
-                    ...current,
-                    [selectedScene.id]: {
-                      ...editorUiState,
-                      italic: !editorUiState.italic,
-                    },
-                  }))
-                }
-                src={editorFontIconAssets.textItalic}
-              />
-              <ScriptStyleButton
-                alt="underline"
-                isActive={editorUiState.underline}
-                onClick={() =>
-                  setSceneEditorUiState((current) => ({
-                    ...current,
-                    [selectedScene.id]: {
-                      ...editorUiState,
-                      underline: !editorUiState.underline,
-                    },
-                  }))
-                }
-                src={editorFontIconAssets.textUnderline}
-              />
-              <ScriptStyleButton
                 alt="align left"
-                isActive={editorUiState.align === "left"}
+                isActive={panelStyle.position === "top"}
                 onClick={() =>
-                  setSceneEditorUiState((current) => ({
+                  setPanelStyle((current) => ({
                     ...current,
-                    [selectedScene.id]: {
-                      ...editorUiState,
-                      align: "left",
-                    },
+                    position: "top",
                   }))
                 }
                 src={editorFontIconAssets.alignLeft}
               />
               <ScriptStyleButton
                 alt="align center"
-                isActive={editorUiState.align === "center"}
+                isActive={panelStyle.position === "center"}
                 onClick={() =>
-                  setSceneEditorUiState((current) => ({
+                  setPanelStyle((current) => ({
                     ...current,
-                    [selectedScene.id]: {
-                      ...editorUiState,
-                      align: "center",
-                    },
+                    position: "center",
                   }))
                 }
                 src={editorFontIconAssets.alignCenter}
               />
               <ScriptStyleButton
                 alt="align right"
-                isActive={editorUiState.align === "right"}
+                isActive={panelStyle.position === "bottom"}
                 onClick={() =>
-                  setSceneEditorUiState((current) => ({
+                  setPanelStyle((current) => ({
                     ...current,
-                    [selectedScene.id]: {
-                      ...editorUiState,
-                      align: "right",
-                    },
+                    position: "bottom",
                   }))
                 }
                 src={editorFontIconAssets.alignRight}
@@ -647,21 +965,18 @@ export function ProjectEditPage({
               </div>
             </div>
 
-            <label className="mt-[18px] flex items-center gap-3">
-              <button
-                className={`flex size-8 items-center justify-center rounded-[10px] border ${
-                  applyAllScenes ? "border-[#8b45ff] bg-[rgba(139,69,255,0.12)]" : "border-[#8b45ff]"
-                }`}
-                onClick={() => setApplyAllScenes((current) => !current)}
-                type="button"
-              >
-                {applyAllScenes ? <Icon className="size-4 text-white" name="check" /> : null}
-              </button>
-              <span className="text-[16px] font-medium text-white">전체 적용</span>
-            </label>
-
-            <div className="pt-[18px]">
-              <Button className="w-full" size="tiny" onClick={applyScriptPanelChanges}>
+            <div className="flex gap-3 pt-[18px]">
+              {editingSubtitleIndex !== null ? (
+                <Button
+                  className="min-w-0 flex-1"
+                  size="tiny"
+                  variant="outlined"
+                  onClick={() => handleDeleteSubtitle(editingSubtitleIndex)}
+                >
+                  삭제
+                </Button>
+              ) : null}
+              <Button className="min-w-0 flex-1" size="tiny" onClick={applyScriptPanelChanges}>
                 적용하기
               </Button>
             </div>

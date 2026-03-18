@@ -36,6 +36,30 @@ type ProjectToastContextValue = {
 
 const ProjectToastContext = createContext<ProjectToastContextValue | null>(null);
 
+function readTrackingFromStorage() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const storedValue = window.localStorage.getItem(TRACKING_STORAGE_KEY);
+
+  if (!storedValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(storedValue) as TrackingPayload;
+
+    if (parsed.projectId && parsed.storyboardId) {
+      return parsed;
+    }
+  } catch {
+    window.localStorage.removeItem(TRACKING_STORAGE_KEY);
+  }
+
+  return null;
+}
+
 export function useProjectToast() {
   const context = useContext(ProjectToastContext);
 
@@ -48,27 +72,11 @@ export function useProjectToast() {
 
 export function ProjectToastProvider({ children }: PropsWithChildren) {
   const router = useRouter();
-  const [tracking, setTracking] = useState<TrackingPayload | null>(null);
+  const [tracking, setTracking] = useState<TrackingPayload | null>(() =>
+    readTrackingFromStorage()
+  );
   const [completion, setCompletion] = useState<CompletionPayload | null>(null);
   const intervalRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const storedValue = window.localStorage.getItem(TRACKING_STORAGE_KEY);
-
-    if (!storedValue) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(storedValue) as TrackingPayload;
-
-      if (parsed.projectId && parsed.storyboardId) {
-        setTracking(parsed);
-      }
-    } catch {
-      window.localStorage.removeItem(TRACKING_STORAGE_KEY);
-    }
-  }, []);
 
   useEffect(() => {
     if (!tracking) {

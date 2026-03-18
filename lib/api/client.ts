@@ -22,6 +22,13 @@ export class ApiError extends Error {
   }
 }
 
+export class NetworkError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NetworkError";
+  }
+}
+
 let refreshPromise: Promise<boolean> | null = null;
 
 export function getApiBaseUrl() {
@@ -136,12 +143,22 @@ export async function apiFetch<T>(
     }
   }
 
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
-    ...rest,
-    body: requestBody,
-    credentials: "include",
-    headers: requestHeaders,
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${getApiBaseUrl()}${path}`, {
+      ...rest,
+      body: requestBody,
+      credentials: "include",
+      headers: requestHeaders,
+    });
+  } catch (error) {
+    throw new NetworkError(
+      error instanceof Error && error.message
+        ? "네트워크 요청에 실패했습니다. 브라우저 확장 프로그램 또는 네트워크 환경을 확인한 뒤 다시 시도해주세요."
+        : "서버에 연결하지 못했습니다. 잠시 후 다시 시도해주세요."
+    );
+  }
 
   if (response.status === 401 && retryOnAuthError) {
     const refreshed = await refreshAccessToken();

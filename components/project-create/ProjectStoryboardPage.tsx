@@ -78,6 +78,25 @@ export function ProjectStoryboardPage({
   const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false);
   const [isWaitingForVideoEdit, setIsWaitingForVideoEdit] = useState(false);
 
+  const persistProjectStage = async () => {
+    if (!resolvedProjectId || !resolvedStoryboardId) {
+      return;
+    }
+
+    try {
+      await updateProject(resolvedProjectId, {
+        current_stage: 3,
+        storyboard_id: resolvedStoryboardId,
+      });
+    } catch (error) {
+      console.error("[project-create] persist stage 3 failed", {
+        error,
+        projectId: resolvedProjectId,
+        storyboardId: resolvedStoryboardId,
+      });
+    }
+  };
+
   useEffect(() => {
     if (!resolvedProjectId || !resolvedStoryboardId) {
       router.replace("/project/create");
@@ -177,11 +196,6 @@ export function ProjectStoryboardPage({
         throw new Error("프로젝트 정보를 찾을 수 없습니다.");
       }
 
-      await updateProject(resolvedProjectId, {
-        current_stage: 3,
-        storyboard_id: resolvedStoryboardId,
-      });
-
       return generateStoryboardVideos(resolvedStoryboardId);
     },
     onSuccess: () => {
@@ -196,8 +210,14 @@ export function ProjectStoryboardPage({
       });
       setIsGenerationModalOpen(true);
       setIsWaitingForVideoEdit(true);
+      void persistProjectStage();
     },
     onError: (error) => {
+      console.error("[project-create] generate videos failed", {
+        error,
+        projectId: resolvedProjectId,
+        storyboardId: resolvedStoryboardId,
+      });
       setErrorMessage(
         error instanceof Error ? error.message : "영상 생성에 실패했습니다."
       );
@@ -294,6 +314,8 @@ export function ProjectStoryboardPage({
               setErrorMessage(null);
               generateVideosMutation.mutate();
             }}
+            aria-busy={generateVideosMutation.isPending}
+            data-pending={generateVideosMutation.isPending}
           >
             영상 생성
           </Button>
@@ -457,6 +479,7 @@ export function ProjectStoryboardPage({
                 setErrorMessage(null);
                 regenerateMutation.mutate();
               }}
+              aria-busy={regenerateMutation.isPending}
             >
               {regenerateMutation.isPending ? "재생성 중" : "이미지 재생성"}
             </Button>
