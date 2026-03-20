@@ -3,15 +3,11 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ApiError, getApiBaseUrl } from "@/lib/api/client";
 import { socialAssets } from "@/lib/assets";
-import { getProject, updateProject } from "@/lib/api/projects";
-import {
-  finalizeStoryboardVideo,
-  getStoryboard,
-  getStoryboardVideoInfo,
-  type VideoInfoResponse,
-} from "@/lib/api/storyboards";
+import { getDownloadUrl } from "@/lib/api/video-edit";
+import { getStoryboard } from "@/lib/api/storyboards";
+import { useProject, useUpdateProject } from "@/hooks/useProjects";
+import { useVideoInfo, useFinalizeVideo } from "@/hooks/useVideoEdit";
 
 import { Button } from "@/components/ui/Button";
 import { ProjectCreateShell } from "@/components/project-create/ProjectCreateShell";
@@ -28,92 +24,93 @@ export function ProjectSavePage({
   storyboardId,
 }: ProjectSavePageProps) {
   const [projectTitle, setProjectTitle] = useState("프로젝트명");
-  const [resolvedStoryboardId, setResolvedStoryboardId] = useState(storyboardId ?? "");
-  const [videoInfo, setVideoInfo] = useState<VideoInfoResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [resolvedStoryboardId, setResolvedStoryboardId] = useState(
+    storyboardId ?? "",
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const [socialTarget, setSocialTarget] = useState<SocialTarget>("youtube");
-  const hasFinalizedRef = useRef(false);
+  const hasFinalized = useRef(false);
 
+  const { data: project } = useProject(projectId);
+  const updateProject = useUpdateProject();
+  const finalizeVideo = useFinalizeVideo();
+
+  // Populate title and storyboard_id from project data
   useEffect(() => {
-    void getProject(projectId)
-      .then((project) => {
-        setProjectTitle(project.title);
-        if (!resolvedStoryboardId && project.storyboard_id) {
-          setResolvedStoryboardId(project.storyboard_id);
+    if (!project) return;
+
+    setProjectTitle(project.title);
+
+    if (!storyboardId && project.storyboard_id) {
+      setResolvedStoryboardId(project.storyboard_id);
+    }
+  }, [project, storyboardId]);
+
+  // If still no storyboardId from project, try fetching storyboard directly
+  useEffect(() => {
+    if (resolvedStoryboardId) return;
+    if (!project?.storyboard_id) return;
+
+    let cancelled = false;
+
+    getStoryboard(project.storyboard_id)
+      .then(() => {
+        if (!cancelled) {
+          setResolvedStoryboardId(project.storyboard_id!);
         }
       })
-      .catch(() => undefined);
-  }, [projectId, resolvedStoryboardId]);
-
-  useEffect(() => {
-    if (!resolvedStoryboardId) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    const poll = async () => {
-      try {
-        const info = await getStoryboardVideoInfo(resolvedStoryboardId);
-
-        if (!isCancelled) {
-          setVideoInfo(info);
-          setIsLoading(false);
-        }
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 404) {
-          try {
-            const storyboard = await getStoryboard(resolvedStoryboardId);
-
-            if (
-              storyboard.final_video_url &&
-              !hasFinalizedRef.current &&
-              projectTitle.trim().length > 0
-            ) {
-              hasFinalizedRef.current = true;
-              const finalized = await finalizeStoryboardVideo(resolvedStoryboardId, {
-                title: projectTitle.trim(),
-              });
-
-              if (!isCancelled) {
-                setVideoInfo({
-                  created_at: new Date().toISOString(),
-                  duration: finalized.duration,
-                  project_id: finalized.project_id,
-                  thumbnail_url: finalized.thumbnail_url ?? null,
-                  title: finalized.title,
-                  video_url: finalized.video_url,
-                });
-                setIsLoading(false);
-              }
-            }
-          } catch {
-            return;
-          }
-          return;
-        }
-
-        if (!isCancelled) {
-          setErrorMessage(
-            error instanceof Error ? error.message : "영상 정보를 불러오지 못했습니다."
-          );
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void poll();
-    const intervalId = window.setInterval(() => {
-      void poll();
-    }, 5000);
+      .catch(() => {
+        // ignore
+      });
 
     return () => {
-      isCancelled = true;
-      window.clearInterval(intervalId);
+      cancelled = true;
     };
-  }, [projectTitle, resolvedStoryboardId]);
+  }, [resolvedStoryboardId, project?.storyboard_id]);
+
+  // Poll video info every 5 seconds while status is not complete
+  const [isVideoComplete, setIsVideoComplete] = useState(false);
+
+  const {
+    data: videoInfo,
+    isLoading: isVideoInfoLoading,
+  } = useVideoInfo(resolvedStoryboardId, {
+    enabled: Boolean(resolvedStoryboardId),
+    refetchInterval: isVideoComplete ? false : 5000,
+  });
+
+  useEffect(() => {
+    if (!videoInfo) return;
+    const status = videoInfo.status?.toUpperCase();
+    if (status === "READY" || status === "COMPLETED" || status === "COMPLETE") {
+      setIsVideoComplete(true);
+    }
+  }, [videoInfo]);
+
+  const isLoading = Boolean(resolvedStoryboardId) && isVideoInfoLoading;
+
+  // Finalize video only after render is complete
+  useEffect(() => {
+    if (!isVideoComplete) return;
+    if (hasFinalized.current) return;
+    if (!resolvedStoryboardId) return;
+    if (!videoInfo?.video_url) return;
+
+    hasFinalized.current = true;
+    finalizeVideo.mutate(
+      { storyboardId: resolvedStoryboardId, title: projectTitle },
+      {
+        onError: (error) => {
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "영상 최종 처리 중 오류가 발생했습니다.",
+          );
+        },
+      },
+    );
+  }, [isVideoComplete, resolvedStoryboardId, videoInfo?.video_url]);
 
   const videoDurationLabel = useMemo(() => {
     const duration = videoInfo?.duration ?? 0;
@@ -162,7 +159,10 @@ export function ProjectSavePage({
               <input
                 className="h-[44px] rounded-[10px] border border-[#2d2d34] bg-[#121214] px-[14px] text-[14px] font-medium text-white outline-none"
                 onBlur={() => {
-                  void updateProject(projectId, { title: projectTitle.trim() || "프로젝트명" });
+                  updateProject.mutate({
+                    projectId,
+                    payload: { title: projectTitle },
+                  });
                 }}
                 onChange={(event) => setProjectTitle(event.target.value)}
                 value={projectTitle}
@@ -183,14 +183,7 @@ export function ProjectSavePage({
                 size="tiny"
                 disabled={!resolvedStoryboardId || isLoading}
                 onClick={() => {
-                  if (!resolvedStoryboardId) {
-                    return;
-                  }
-
-                  window.open(
-                    `${getApiBaseUrl()}/api/storyboards/${resolvedStoryboardId}/download`,
-                    "_blank"
-                  );
+                  window.open(getDownloadUrl(resolvedStoryboardId));
                 }}
               >
                 다운로드

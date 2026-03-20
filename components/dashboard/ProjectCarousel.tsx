@@ -1,14 +1,23 @@
 "use client";
 
-import { useRef } from "react";
+import { startTransition, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import type { DashboardProject } from "@/lib/api/dashboard";
+import { useDeleteProject } from "@/hooks/useProjects";
 import { getProjectCardImageSrc } from "@/lib/project-card";
+import { resolveProjectResumePath } from "@/lib/project-resume";
 
 import { Icon } from "@/components/ui/Icon";
 import { ProjectCard } from "@/components/ui/ProjectCard";
 import { ProjectCreateCard } from "@/components/ui/ProjectCreateCard";
+
+type DashboardProject = {
+  id: string;
+  title: string;
+  character_name: string;
+  character_image: string;
+  progress?: number;
+};
 
 type ProjectCarouselProps = {
   projects: DashboardProject[];
@@ -17,6 +26,9 @@ type ProjectCarouselProps = {
 export function ProjectCarousel({ projects }: ProjectCarouselProps) {
   const router = useRouter();
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const deleteProjectMutation = useDeleteProject();
+  const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hasProjects = projects.length > 0;
 
   function scrollByOffset(direction: "left" | "right") {
@@ -32,8 +44,34 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
     });
   }
 
+  async function handleEdit(projectId: string) {
+    setPendingProjectId(projectId);
+    setErrorMessage(null);
+
+    try {
+      const nextPath = await resolveProjectResumePath(projectId);
+
+      startTransition(() => {
+        router.push(nextPath);
+      });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "프로젝트 수정 화면으로 이동하지 못했습니다."
+      );
+      setPendingProjectId(null);
+    }
+  }
+
   return (
     <div className="relative">
+      {errorMessage ? (
+        <p className="mb-4 max-w-[720px] rounded-[14px] border border-[#5b2c32] bg-[rgba(91,44,50,0.18)] px-[18px] py-[14px] pr-10 text-[14px] text-[#ffb8bf]">
+          {errorMessage}
+        </p>
+      ) : null}
+
       {hasProjects ? (
         <>
           <button
@@ -69,14 +107,13 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
           <div key={project.id} className="snap-start">
             <ProjectCard
               characterName={project.character_name}
+              className={pendingProjectId === project.id ? "opacity-70" : undefined}
               imageSrc={getProjectCardImageSrc(project.character_image, index)}
-              onDelete={() => undefined}
-              onEdit={() => undefined}
-              progressLabel={
-                typeof project.progress === "number" && Number.isFinite(project.progress)
-                  ? `${project.progress}%`
-                  : null
-              }
+              onDelete={() => deleteProjectMutation.mutate(project.id)}
+              onEdit={() => {
+                void handleEdit(project.id);
+              }}
+              statusColor={project.progress === 100 ? "gray" : "pink"}
               statusLabel={project.progress === 100 ? "진행 완료" : "진행 중"}
               title={project.title}
             />

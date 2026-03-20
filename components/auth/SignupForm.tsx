@@ -5,14 +5,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthField } from "@/components/auth/AuthField";
 import { Button } from "@/components/ui/Button";
-import { login, signup, validateUsername } from "@/lib/api/auth";
+import { useLogin, useSignup, useValidateUsername } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/api/client";
 
 const usernamePattern = /^(?=.*[A-Za-z])[A-Za-z0-9]{5,20}$/;
@@ -89,7 +88,6 @@ function IdCheckRow({
 
 export function SignupForm() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
   const [usernameMessage, setUsernameMessage] = useState<string | null>(null);
   const [verifiedUsername, setVerifiedUsername] = useState<string | null>(null);
@@ -104,15 +102,9 @@ export function SignupForm() {
       },
       resolver: zodResolver(signupSchema),
     });
-  const validateUsernameMutation = useMutation({
-    mutationFn: validateUsername,
-  });
-  const signupMutation = useMutation({
-    mutationFn: signup,
-  });
-  const loginMutation = useMutation({
-    mutationFn: login,
-  });
+  const validateUsernameMutation = useValidateUsername();
+  const signupMutation = useSignup();
+  const loginMutation = useLogin();
   const usernameValue = useWatch({
     control,
     name: "username",
@@ -178,7 +170,6 @@ export function SignupForm() {
         password: values.password,
         username: values.username,
       });
-      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       router.replace("/dashboard");
     } catch (error) {
       if (error instanceof ApiError) {
@@ -188,12 +179,9 @@ export function SignupForm() {
             item.field === "password" ||
             item.field === "username"
           ) {
-            setError(item.field, {
-              message: item.message,
-            });
+            setError(item.field, { message: item.message });
           }
         }
-
         setFormError(error.message);
         return;
       }
@@ -239,7 +227,6 @@ export function SignupForm() {
                         "아이디를 수정했습니다. 다시 중복확인을 진행해 주세요."
                       );
                     }
-
                     field.onChange(value);
                   }}
                   onCheck={handleUsernameCheck}

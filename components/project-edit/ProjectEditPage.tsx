@@ -3,41 +3,45 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-
-import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { ScriptInputField } from "@/components/ui/ScriptInputField";
 import { ProjectCreateShell } from "@/components/project-create/ProjectCreateShell";
 import { editorFontIconAssets } from "@/lib/assets";
-import { getProject, updateProject } from "@/lib/api/projects";
-import {
-  getStoryboard,
-  getVideoEdit,
-  startStoryboardRender,
-  undoVideoEdit,
-  updateVideoEdit,
-  type EditData,
-  type StoryboardScene,
-  type SubtitleItem,
-  type SubtitleStyle,
-} from "@/lib/api/storyboards";
 import { updateProjectDraft } from "@/lib/project-draft";
+import { useProject, useUpdateProject } from "@/hooks/useProjects";
+import { useStoryboard } from "@/hooks/useStoryboard";
+import {
+  useVideoEdit,
+  useSaveVideoEdit,
+  useUndoVideoEdit,
+  useStartRender,
+} from "@/hooks/useVideoEdit";
+import { NetworkError } from "@/lib/api/client";
+import type {
+  EditData,
+  EditSceneItem,
+  SubtitleItem,
+  SubtitleStyle,
+  SceneItem,
+} from "@/lib/api/types";
 
 type ProjectEditPageProps = {
   projectId: string;
   storyboardId?: string;
 };
 
-type SceneEditorUiState = {
-  align: "left" | "center" | "right";
-  bold: boolean;
-  italic: boolean;
-  underline: boolean;
-};
+const transitionOptions = [
+  { label: "없음", value: "none" },
+  { label: "페이드", value: "fade" },
+  { label: "디졸브", value: "dissolve" },
+  { label: "슬라이드 좌", value: "slide_left" },
+  { label: "슬라이드 업", value: "slide_up" },
+  { label: "와이프", value: "wipe" },
+] as const;
 
 const defaultSubtitleStyle: SubtitleStyle = {
   animation: "none",
@@ -57,26 +61,47 @@ const defaultSubtitleStyle: SubtitleStyle = {
   },
 };
 
-function getSceneDuration(scene: StoryboardScene) {
+function getSceneDuration(scene: SceneItem) {
   return Number.isFinite(scene.duration) && scene.duration > 0 ? scene.duration : 5;
 }
 
-function ensureSceneSubtitle(editData: EditData, scene: StoryboardScene) {
-  const existingSubtitle = editData.subtitles?.find(
-    (subtitle) => subtitle.scene_id === scene.id
-  );
+function formatTime(seconds: number) {
+  const safeSeconds = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = Math.floor(safeSeconds % 60);
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+}
 
-  if (existingSubtitle) {
-    return existingSubtitle;
-  }
-
+function createDefaultSubtitle(scene: SceneItem): SubtitleItem {
   return {
     end: getSceneDuration(scene),
     scene_id: scene.id,
     start: 0,
     style: defaultSubtitleStyle,
     text: scene.content,
-  } satisfies SubtitleItem;
+  };
+}
+
+function getSceneSubtitleEntries(editData: EditData, scene: SceneItem) {
+  return (editData.subtitles ?? [])
+    .map((subtitle, index) => ({ index, subtitle }))
+    .filter((entry) => entry.subtitle.scene_id === scene.id)
+    .sort((left, right) => left.subtitle.start - right.subtitle.start);
+}
+
+function getSceneEditItem(editData: EditData, scene: SceneItem) {
+  return editData.scenes?.find((entry) => entry.scene_id === scene.id) ?? null;
+}
+
+function createDefaultSceneEdit(scene: SceneItem): EditSceneItem {
+  return {
+    order: scene.scene_order,
+    scene_id: scene.id,
+    speed: 1,
+    transition: "none",
+    trim_end: getSceneDuration(scene),
+    trim_start: 0,
+  };
 }
 
 function previewSubtitleStyle(style?: SubtitleStyle) {
@@ -87,6 +112,12 @@ function previewSubtitleStyle(style?: SubtitleStyle) {
     color: style?.color ?? "#FFFFFF",
     fontFamily: style?.font ?? "Pretendard",
     fontSize: `${style?.font_size ?? 24}px`,
+    justifyContent:
+      style?.position === "top"
+        ? "flex-start"
+        : style?.position === "center"
+          ? "center"
+          : "flex-end",
   };
 }
 
@@ -121,158 +152,234 @@ export function ProjectEditPage({
   storyboardId,
 }: ProjectEditPageProps) {
   const router = useRouter();
-  const projectQuery = useQuery({
-    queryFn: () => getProject(projectId),
-    queryKey: ["project", projectId],
-  });
 
-  const resolvedStoryboardId = storyboardId || projectQuery.data?.storyboard_id || "";
-
-  const storyboardQuery = useQuery({
-    enabled: Boolean(resolvedStoryboardId),
-    queryFn: () => getStoryboard(resolvedStoryboardId),
-    queryKey: ["storyboard", resolvedStoryboardId],
+  const projectQuery = useProject(projectId);
+  const [shouldPollStoryboard, setShouldPollStoryboard] = useState(true);
+  const storyboardQuery = useStoryboard(storyboardId ?? "", {
+    refetchInterval: shouldPollStoryboard ? 5000 : false,
   });
+  const editQuery = useVideoEdit(storyboardId ?? "");
 
-  const editQuery = useQuery({
-    enabled: Boolean(resolvedStoryboardId),
-    queryFn: () => getVideoEdit(resolvedStoryboardId),
-    queryKey: ["video-edit", resolvedStoryboardId],
-  });
+  const saveVideoEdit = useSaveVideoEdit();
+  const undoVideoEdit = useUndoVideoEdit();
+  const startRender = useStartRender();
+  const updateProject = useUpdateProject();
+
+  const projectTitle = projectQuery.data?.title ?? "프로젝트명";
+  const scenes: SceneItem[] = storyboardQuery.data?.scenes ?? [];
+  const isLoading = projectQuery.isLoading || storyboardQuery.isLoading || editQuery.isLoading;
+  const isError = projectQuery.isError || editQuery.isError;
 
   const [selectedSceneId, setSelectedSceneId] = useState("");
   const [localEditData, setLocalEditData] = useState<EditData | null>(null);
   const [isScriptPanelOpen, setIsScriptPanelOpen] = useState(false);
+  const [editingSubtitleIndex, setEditingSubtitleIndex] = useState<number | null>(null);
   const [panelText, setPanelText] = useState("");
+  const [panelStart, setPanelStart] = useState("0");
+  const [panelEnd, setPanelEnd] = useState("5");
   const [panelStyle, setPanelStyle] = useState<SubtitleStyle>(defaultSubtitleStyle);
-  const [applyAllScenes, setApplyAllScenes] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [sceneEditorUiState, setSceneEditorUiState] = useState<
-    Record<string, SceneEditorUiState>
-  >({});
+  const [isMuted, setIsMuted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [playerDuration, setPlayerDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  const editData = localEditData ?? editQuery.data?.edit_data ?? null;
-  const scenes = useMemo(() => storyboardQuery.data?.scenes ?? [], [storyboardQuery.data?.scenes]);
+  // Stop polling storyboard once all scenes have video_url
+  useEffect(() => {
+    if (!storyboardQuery.data) return;
+    const allReady = storyboardQuery.data.scenes.length > 0 &&
+      storyboardQuery.data.scenes.every((scene) => scene.video_url);
+    if (allReady) setShouldPollStoryboard(false);
+  }, [storyboardQuery.data]);
+
+  // Initialize localEditData from server, or use empty object as fallback
+  useEffect(() => {
+    if (localEditData) return;
+    if (editQuery.data?.edit_data) {
+      setLocalEditData(editQuery.data.edit_data);
+    } else if (!editQuery.isLoading && !editQuery.isError) {
+      // edit_data not available yet but query finished — use empty EditData
+      setLocalEditData({});
+    }
+  }, [editQuery.data, editQuery.isLoading, editQuery.isError, localEditData]);
+
+  const editData = localEditData;
   const selectedScene = useMemo(
     () => scenes.find((scene) => scene.id === selectedSceneId) ?? scenes[0],
     [scenes, selectedSceneId]
   );
 
+  const selectedSceneSubtitleEntries =
+    selectedScene ? getSceneSubtitleEntries(localEditData ?? {}, selectedScene) : [];
   const selectedSubtitle =
+    selectedSceneSubtitleEntries[0]?.subtitle ??
+    (selectedScene ? createDefaultSubtitle(selectedScene) : null);
+  const selectedSceneEdit =
     selectedScene && editData
-      ? ensureSceneSubtitle(editData, selectedScene)
+      ? getSceneEditItem(editData, selectedScene) ?? createDefaultSceneEdit(selectedScene)
       : null;
 
-  const editorUiState = selectedScene
-    ? sceneEditorUiState[selectedScene.id] ?? {
-        align: "center",
-        bold: false,
-        italic: false,
-        underline: false,
+  async function handleUndo() {
+    if (!storyboardId) return;
+    try {
+      const result = await undoVideoEdit.mutateAsync(storyboardId);
+      setLocalEditData(result.edit_data);
+      setSaveMessage("되돌리기가 완료되었습니다.");
+    } catch (error) {
+      if (error instanceof NetworkError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("되돌리기에 실패했습니다.");
       }
-    : {
-        align: "center" as const,
-        bold: false,
-        italic: false,
-        underline: false,
-      };
+    }
+  }
 
-  const undoMutation = useMutation({
-    mutationFn: async () => {
-      if (!resolvedStoryboardId) {
-        throw new Error("되돌릴 영상을 찾을 수 없습니다.");
+  async function handleSave() {
+    if (!storyboardId || !localEditData) return;
+    try {
+      const result = await saveVideoEdit.mutateAsync({
+        storyboardId,
+        editData: localEditData,
+      });
+      setLocalEditData(result.edit_data);
+      setSaveMessage("저장되었습니다.");
+    } catch (error) {
+      if (error instanceof NetworkError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("저장에 실패했습니다.");
       }
+    }
+  }
 
-      return undoVideoEdit(resolvedStoryboardId);
-    },
-    onSuccess: (response) => {
-      setLocalEditData(response.edit_data);
-    },
-  });
+  async function handleRender() {
+    if (!storyboardId || !localEditData) return;
+    try {
+      const saveResult = await saveVideoEdit.mutateAsync({
+        storyboardId,
+        editData: localEditData,
+      });
+      setLocalEditData(saveResult.edit_data);
 
-  const renderMutation = useMutation({
-    mutationFn: async () => {
-      if (!resolvedStoryboardId || !editData) {
-        throw new Error("렌더링할 편집 데이터가 없습니다.");
-      }
-
-      await updateVideoEdit(resolvedStoryboardId, editData);
-      await updateProject(projectId, {
-        current_stage: 4,
-        storyboard_id: resolvedStoryboardId,
+      await updateProject.mutateAsync({
+        projectId,
+        payload: { current_stage: 4, storyboard_id: storyboardId },
       });
 
-      return startStoryboardRender(resolvedStoryboardId);
-    },
-    onSuccess: () => {
+      await startRender.mutateAsync(storyboardId);
+
       updateProjectDraft({
         projectId,
-        storyboardId: resolvedStoryboardId,
-        title: projectQuery.data?.title ?? "프로젝트명",
+        storyboardId,
+        title: projectTitle,
       });
       router.push(
-        `/project/${projectId}/save?storyboardId=${encodeURIComponent(
-          resolvedStoryboardId
-        )}`
+        `/project/${projectId}/save?storyboardId=${encodeURIComponent(storyboardId)}`
       );
-    },
-    onError: (error) => {
-      setErrorMessage(
-        error instanceof Error ? error.message : "렌더링 시작에 실패했습니다."
-      );
-    },
-  });
-
-  const openScriptPanel = () => {
-    if (!selectedScene || !selectedSubtitle) {
-      return;
+    } catch (error) {
+      if (error instanceof NetworkError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("렌더링 요청에 실패했습니다.");
+      }
     }
+  }
 
-    setPanelText(selectedSubtitle.text);
-    setPanelStyle(selectedSubtitle.style ?? defaultSubtitleStyle);
-    setApplyAllScenes(false);
+  const openScriptPanel = (subtitleIndex?: number) => {
+    if (!selectedScene) return;
+
+    const nextSubtitle =
+      subtitleIndex === undefined || subtitleIndex < 0 || !editData?.subtitles?.[subtitleIndex]
+        ? createDefaultSubtitle(selectedScene)
+        : editData.subtitles[subtitleIndex];
+
+    setEditingSubtitleIndex(subtitleIndex ?? null);
+    setPanelText(nextSubtitle.text);
+    setPanelStart(String(nextSubtitle.start));
+    setPanelEnd(String(nextSubtitle.end));
+    setPanelStyle(nextSubtitle.style ?? defaultSubtitleStyle);
+    setSaveMessage(null);
     setIsScriptPanelOpen(true);
   };
 
   const applyScriptPanelChanges = () => {
-    if (!selectedScene || !editData) {
-      return;
+    if (!selectedScene) return;
+
+    const currentEditData = localEditData ?? {};
+    const sceneDuration = getSceneDuration(selectedScene);
+    const normalizedStart = Math.max(0, Math.min(sceneDuration, Number(panelStart) || 0));
+    const normalizedEnd = Math.max(normalizedStart, Math.min(sceneDuration, Number(panelEnd) || sceneDuration));
+    const nextSubtitles = [...(currentEditData.subtitles ?? [])];
+    const nextSubtitle: SubtitleItem = {
+      end: normalizedEnd,
+      scene_id: selectedScene.id,
+      start: normalizedStart,
+      style: panelStyle,
+      text: panelText.trim(),
+    };
+
+    if (editingSubtitleIndex !== null && nextSubtitles[editingSubtitleIndex]) {
+      nextSubtitles[editingSubtitleIndex] = nextSubtitle;
+    } else {
+      nextSubtitles.push(nextSubtitle);
     }
 
-    const nextSubtitles = [...(editData.subtitles ?? [])];
-    const targetScenes = applyAllScenes ? scenes : [selectedScene];
-
-    targetScenes.forEach((scene) => {
-      const currentIndex = nextSubtitles.findIndex((item) => item.scene_id === scene.id);
-      const baseSubtitle = ensureSceneSubtitle(editData, scene);
-      const nextSubtitle: SubtitleItem = {
-        ...baseSubtitle,
-        scene_id: scene.id,
-        style: panelStyle,
-        text: applyAllScenes ? baseSubtitle.text : panelText,
-      };
-
-      if (currentIndex >= 0) {
-        nextSubtitles[currentIndex] = nextSubtitle;
-      } else {
-        nextSubtitles.push(nextSubtitle);
-      }
-    });
-
-    setLocalEditData({
-      ...editData,
-      subtitles: nextSubtitles,
-    });
+    setLocalEditData({ ...currentEditData, subtitles: nextSubtitles });
+    setSaveMessage(null);
+    setEditingSubtitleIndex(null);
     setIsScriptPanelOpen(false);
   };
 
-  if (projectQuery.isLoading || storyboardQuery.isLoading || editQuery.isLoading) {
+  function handleDeleteSubtitle(index: number) {
+    const currentEditData = localEditData ?? {};
+    setLocalEditData({
+      ...currentEditData,
+      subtitles: (currentEditData.subtitles ?? []).filter((_, subtitleIndex) => subtitleIndex !== index),
+    });
+    setSaveMessage(null);
+    setEditingSubtitleIndex(null);
+    setIsScriptPanelOpen(false);
+  }
+
+  function updateSelectedSceneEdit(updater: (current: EditSceneItem) => EditSceneItem) {
+    if (!selectedScene) return;
+
+    const currentEditData = localEditData ?? {};
+    const currentSceneEdit = getSceneEditItem(currentEditData, selectedScene) ?? createDefaultSceneEdit(selectedScene);
+    const nextSceneEdit = updater(currentSceneEdit);
+    const nextScenes = [...(currentEditData.scenes ?? [])];
+    const targetIndex = nextScenes.findIndex((entry) => entry.scene_id === selectedScene.id);
+
+    if (targetIndex >= 0) {
+      nextScenes[targetIndex] = nextSceneEdit;
+    } else {
+      nextScenes.push(nextSceneEdit);
+    }
+
+    setLocalEditData({ ...currentEditData, scenes: nextScenes });
+    setSaveMessage(null);
+  }
+
+  async function handlePlayToggle() {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.paused) {
+      await video.play();
+      setIsPlaying(true);
+      return;
+    }
+
+    video.pause();
+    setIsPlaying(false);
+  }
+
+  if (isLoading) {
     return (
-      <ProjectCreateShell
-        currentStep={3}
-        projectTitle={projectQuery.data?.title ?? "프로젝트명"}
-        title="영상 생성 및 편집"
-      >
+      <ProjectCreateShell currentStep={3} projectTitle={projectTitle} title="영상 생성 및 편집">
         <div className="flex min-h-[420px] items-center justify-center">
           <div className="flex items-center gap-3 text-[#d7d7dc]">
             <span className="inline-flex size-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
@@ -283,10 +390,25 @@ export function ProjectEditPage({
     );
   }
 
+  if (isError) {
+    return (
+      <ProjectCreateShell currentStep={3} projectTitle={projectTitle} title="영상 생성 및 편집">
+        <div className="flex min-h-[420px] items-center justify-center">
+          <div className="flex w-full max-w-[520px] flex-col items-center rounded-[22px] border border-[#2b2b31] bg-[#121214] px-6 py-7 text-center">
+            <p className="text-[16px] font-semibold text-white">편집 화면을 준비하지 못했습니다.</p>
+            <p className="pt-3 text-[14px] leading-[1.6] text-[#b7b7bf]">
+              편집 데이터를 불러오지 못했습니다.
+            </p>
+          </div>
+        </div>
+      </ProjectCreateShell>
+    );
+  }
+
   return (
     <ProjectCreateShell
       currentStep={3}
-      projectTitle={projectQuery.data?.title ?? "프로젝트명"}
+      projectTitle={projectTitle}
       title=""
       description=""
       actions={
@@ -296,10 +418,22 @@ export function ProjectEditPage({
           </Button>
           <Button
             size="tiny"
-            disabled={renderMutation.isPending || !editData}
+            variant="outlined"
+            disabled={!editData}
             onClick={() => {
               setErrorMessage(null);
-              renderMutation.mutate();
+              setSaveMessage(null);
+              void handleSave();
+            }}
+          >
+            저장
+          </Button>
+          <Button
+            size="tiny"
+            disabled={!editData}
+            onClick={() => {
+              setErrorMessage(null);
+              void handleRender();
             }}
           >
             편집 완료
@@ -312,23 +446,47 @@ export function ProjectEditPage({
           {errorMessage}
         </p>
       ) : null}
+      {saveMessage ? (
+        <p className="mx-auto mb-[18px] max-w-[1162px] rounded-[14px] border border-[#284638] bg-[rgba(40,70,56,0.2)] px-[18px] py-[14px] text-[14px] text-[#b8ffd7]">
+          {saveMessage}
+        </p>
+      ) : null}
 
       <div className="mx-auto w-full max-w-[1162px]">
         <div className="flex justify-center">
           <div className="relative h-[404px] w-[226px] overflow-hidden rounded-[18px] bg-[#f5f2e9]">
-            <img
-              alt={selectedScene?.title ?? "scene"}
-              className="h-full w-full object-cover"
-              src={
-                selectedScene?.image_url ||
-                "/assets/landing/cards/storyboard-cover-1.png"
-              }
-            />
+            {selectedScene?.video_url ? (
+              <video
+                key={selectedScene.id}
+                ref={videoRef}
+                className="h-full w-full object-cover"
+                onEnded={() => setIsPlaying(false)}
+                onLoadedMetadata={(event) => {
+                  setPlayerDuration(event.currentTarget.duration || getSceneDuration(selectedScene));
+                  setCurrentTime(event.currentTarget.currentTime || 0);
+                  event.currentTarget.playbackRate = selectedSceneEdit?.speed ?? playbackRate;
+                }}
+                onPause={() => setIsPlaying(false)}
+                onPlay={() => setIsPlaying(true)}
+                onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+                playsInline
+                src={selectedScene.video_url}
+              />
+            ) : (
+              <img
+                alt={selectedScene?.title ?? "scene"}
+                className="h-full w-full object-cover"
+                src={
+                  selectedScene?.image_url ||
+                  "/assets/landing/cards/storyboard-cover-1.png"
+                }
+              />
+            )}
             <div
-              className="absolute bottom-[14px] left-[16px] right-[16px] rounded-[8px] px-[12px] py-[6px] text-center font-semibold"
+              className="absolute inset-x-[16px] bottom-[14px] flex rounded-[8px] px-[12px] py-[6px] font-semibold"
               style={previewSubtitleStyle(selectedSubtitle?.style)}
             >
-              {selectedSubtitle?.text ?? "script"}
+              <span className="w-full text-center">{selectedSubtitle?.text ?? "script"}</span>
             </div>
           </div>
         </div>
@@ -336,46 +494,68 @@ export function ProjectEditPage({
         <div className="mt-[38px] rounded-[22px] border border-[#25252b] bg-[#121214] px-[16px] py-[14px]">
           <div className="flex items-center justify-between border-b border-[#222228] pb-[12px]">
             <div className="flex items-center gap-[14px] text-[#d7d7dc]">
-              <button className="text-white" type="button">
-                <Icon className="size-5" name="play" />
-              </button>
-              <span className="text-[13px] font-medium">00:18 / 01:38</span>
               <button
-                className="rounded-full border border-[#2f2f35] px-[8px] py-[2px] text-[12px] font-medium text-[#a8a8b1]"
+                className="text-white"
+                disabled={!selectedScene?.video_url}
+                onClick={() => { void handlePlayToggle(); }}
                 type="button"
               >
-                1x
+                <Icon className="size-5" name={isPlaying ? "pause" : "play"} />
               </button>
-              <button className="text-[#a8a8b1]" type="button">
+              <span className="text-[13px] font-medium">
+                {formatTime(currentTime)} /{" "}
+                {formatTime(playerDuration || (selectedScene ? getSceneDuration(selectedScene) : 0))}
+              </span>
+              <button
+                className="rounded-full border border-[#2f2f35] px-[8px] py-[2px] text-[12px] font-medium text-[#a8a8b1]"
+                onClick={() => {
+                  const nextRate = playbackRate === 1 ? 1.5 : playbackRate === 1.5 ? 2 : 1;
+                  setPlaybackRate(nextRate);
+                  if (selectedScene) {
+                    updateSelectedSceneEdit((current) => ({ ...current, speed: nextRate }));
+                  }
+                }}
+                type="button"
+              >
+                {playbackRate}x
+              </button>
+              <button
+                className="text-[#a8a8b1]"
+                onClick={() => setIsMuted((current) => !current)}
+                type="button"
+              >
                 <Icon className="size-4" name="sound" />
               </button>
             </div>
 
             <div className="flex items-center gap-[12px] text-[#d7d7dc]">
-              <button
-                className="text-[#cfcfd5]"
-                onClick={() => {
-                  setErrorMessage(null);
-                  undoMutation.mutate();
-                }}
-                type="button"
-              >
+              <button className="text-[#cfcfd5]" onClick={() => { setErrorMessage(null); void handleUndo(); }} type="button">
                 <Icon className="size-5" name="reset" />
               </button>
               <button className="text-[#cfcfd5]" type="button">
                 <Icon className="size-5" name="redo" />
               </button>
-              <div className="flex items-center gap-3">
-                <span className="h-[2px] w-[18px] bg-[#d7d7dc]" />
-                <span className="h-[4px] w-[36px] rounded-full bg-[#d7d7dc]" />
-                <span className="inline-flex size-[10px] rounded-full bg-[#d7d7dc]" />
-              </div>
+              <input
+                className="w-[140px] accent-[#d7d7dc]"
+                max={playerDuration || (selectedScene ? getSceneDuration(selectedScene) : 0)}
+                min={0}
+                onChange={(event) => {
+                  const nextTime = Number(event.target.value);
+                  const video = videoRef.current;
+                  setCurrentTime(nextTime);
+                  if (video) { video.currentTime = nextTime; }
+                }}
+                step="0.1"
+                type="range"
+                value={Math.min(currentTime, playerDuration || (selectedScene ? getSceneDuration(selectedScene) : 0))}
+              />
             </div>
           </div>
 
           <div className="mt-[16px] flex gap-[10px] overflow-x-auto pb-[8px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {scenes.map((scene) => {
-              const subtitle = editData ? ensureSceneSubtitle(editData, scene) : null;
+              const subtitleEntries = getSceneSubtitleEntries(localEditData ?? {}, scene);
+              const subtitle = subtitleEntries[0]?.subtitle ?? createDefaultSubtitle(scene);
               const isSelected = scene.id === selectedScene?.id;
 
               return (
@@ -387,75 +567,154 @@ export function ProjectEditPage({
                       : "border-[#23232a]"
                   }`}
                 >
-                  <button
-                    className="w-full"
-                    onClick={() => setSelectedSceneId(scene.id)}
-                    type="button"
-                  >
+                  <button className="w-full" onClick={() => setSelectedSceneId(scene.id)} type="button">
                     <div className="h-[64px] overflow-hidden rounded-[10px] bg-white">
                       <img
                         alt={scene.title}
                         className="h-full w-full object-cover"
-                        src={
-                          scene.image_url ||
-                          "/assets/landing/cards/storyboard-cover-1.png"
-                        }
+                        src={scene.image_url || "/assets/landing/cards/storyboard-cover-1.png"}
                       />
                     </div>
                     <p className="pt-[8px] text-left text-[12px] font-semibold text-white">
                       #{scene.scene_order}
                     </p>
                   </button>
-                  <ScriptInputField
-                    className="mt-[6px] w-full truncate rounded-full bg-[#2b2b31] text-left text-[#d7d7dc]"
-                    state={isSelected ? "selected" : "default"}
-                    onClick={() => {
-                      setSelectedSceneId(scene.id);
-                      setTimeout(() => {
-                        openScriptPanel();
-                      }, 0);
-                    }}
-                  >
-                    {subtitle?.text || "스크립트"}
-                  </ScriptInputField>
+                  <div className="mt-[6px] rounded-[12px] bg-[#2b2b31] px-[10px] py-[8px] text-left">
+                    <p className="truncate text-[12px] font-medium text-[#d7d7dc]">
+                      {subtitle?.text || "스크립트 없음"}
+                    </p>
+                    <p className="pt-[4px] text-[11px] text-[#8f8f98]">
+                      {subtitleEntries.length}개
+                    </p>
+                  </div>
                 </div>
               );
             })}
           </div>
+
+          {selectedScene ? (
+            <div className="mt-[18px] rounded-[18px] border border-[#25252b] bg-[#16161a] px-[16px] py-[14px]">
+              <div className="grid gap-3 border-b border-[#25252b] pb-[16px] md:grid-cols-2">
+                <label className="flex flex-col gap-2 text-[12px] font-medium text-[#b7b7bf]">
+                  재생 속도
+                  <select
+                    className="h-[44px] rounded-[10px] border border-[#303038] bg-[#121214] px-[12px] text-[14px] text-white outline-none"
+                    onChange={(event) => updateSelectedSceneEdit((current) => ({ ...current, speed: Number(event.target.value) }))}
+                    value={selectedSceneEdit?.speed ?? 1}
+                  >
+                    {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
+                      <option key={speed} value={speed}>{speed}x</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-2 text-[12px] font-medium text-[#b7b7bf]">
+                  전환 효과
+                  <select
+                    className="h-[44px] rounded-[10px] border border-[#303038] bg-[#121214] px-[12px] text-[14px] text-white outline-none"
+                    onChange={(event) => updateSelectedSceneEdit((current) => ({ ...current, transition: event.target.value }))}
+                    value={selectedSceneEdit?.transition ?? "none"}
+                  >
+                    {transitionOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="pt-[16px] text-[16px] font-semibold text-white">
+                    #{selectedScene.scene_order} 씬 스크립트
+                  </p>
+                  <p className="pt-[4px] text-[12px] text-[#8f8f98]">
+                    씬별 자막을 추가하고 타이밍을 조정할 수 있습니다.
+                  </p>
+                </div>
+                <Button className="min-w-[120px]" size="tiny" onClick={() => openScriptPanel()}>
+                  스크립트 추가
+                </Button>
+              </div>
+
+              <div className="mt-[14px] flex flex-wrap gap-3">
+                {selectedSceneSubtitleEntries.length > 0 ? (
+                  selectedSceneSubtitleEntries.map((entry) => (
+                    <ScriptInputField
+                      key={`${entry.subtitle.scene_id}-${entry.index}-${entry.subtitle.start}`}
+                      className="h-auto min-h-[48px] min-w-[220px] max-w-[320px] rounded-[14px] bg-[#23232a] px-[14px] py-[10px] text-left"
+                      state="default"
+                      onClick={() => openScriptPanel(entry.index)}
+                    >
+                      <span className="flex flex-col">
+                        <span className="truncate text-[13px] font-medium text-white">
+                          {entry.subtitle.text}
+                        </span>
+                        <span className="pt-[4px] text-[11px] text-[#9f9faa]">
+                          {entry.subtitle.start.toFixed(1)}s - {entry.subtitle.end.toFixed(1)}s
+                        </span>
+                      </span>
+                    </ScriptInputField>
+                  ))
+                ) : (
+                  <div className="rounded-[14px] border border-dashed border-[#31313a] px-[14px] py-[16px] text-[13px] text-[#8f8f98]">
+                    아직 추가된 스크립트가 없습니다.
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
       {isScriptPanelOpen && selectedScene ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(0,0,0,0.45)] px-4">
-          <div className="w-full max-w-[320px] rounded-[24px] bg-[#1f1f24] px-[20px] py-[18px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+          <div className="w-full max-w-[360px] rounded-[24px] bg-[#1f1f24] px-[20px] py-[18px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
             <div className="flex items-center justify-between">
               <h2 className="text-[18px] font-semibold text-white">스크립트</h2>
-              <button
-                className="text-white"
-                onClick={() => setIsScriptPanelOpen(false)}
-                type="button"
-              >
+              <button className="text-white" onClick={() => setIsScriptPanelOpen(false)} type="button">
                 <Icon className="size-5" name="close" />
               </button>
             </div>
 
             <div className="pt-[14px]">
               <textarea
-                className="h-[80px] w-full resize-none rounded-[14px] border border-[#303038] bg-[#121214] px-[14px] py-[12px] text-[14px] font-medium text-[#f1f1f4] outline-none placeholder:text-[#6d6d76]"
+                className="h-[96px] w-full resize-none rounded-[14px] border border-[#303038] bg-[#121214] px-[14px] py-[12px] text-[14px] font-medium text-[#f1f1f4] outline-none placeholder:text-[#6d6d76]"
                 onChange={(event) => setPanelText(event.target.value)}
+                placeholder="씬에 표시할 스크립트를 입력하세요"
                 value={panelText}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-[12px]">
+              <label className="flex flex-col gap-2 text-[12px] font-medium text-[#b7b7bf]">
+                시작 시간
+                <input
+                  className="h-[44px] rounded-[10px] border border-[#303038] bg-[#121214] px-[12px] text-[14px] text-white outline-none"
+                  max={getSceneDuration(selectedScene)}
+                  min={0}
+                  onChange={(event) => setPanelStart(event.target.value)}
+                  step="0.1"
+                  type="number"
+                  value={panelStart}
+                />
+              </label>
+              <label className="flex flex-col gap-2 text-[12px] font-medium text-[#b7b7bf]">
+                종료 시간
+                <input
+                  className="h-[44px] rounded-[10px] border border-[#303038] bg-[#121214] px-[12px] text-[14px] text-white outline-none"
+                  max={getSceneDuration(selectedScene)}
+                  min={0}
+                  onChange={(event) => setPanelEnd(event.target.value)}
+                  step="0.1"
+                  type="number"
+                  value={panelEnd}
+                />
+              </label>
             </div>
 
             <div className="grid grid-cols-[1fr_90px] gap-3 pt-[12px]">
               <select
                 className="h-[52px] rounded-[10px] border border-[#303038] bg-[#121214] px-[14px] text-[14px] font-medium text-white outline-none"
-                onChange={(event) =>
-                  setPanelStyle((current) => ({
-                    ...current,
-                    font: event.target.value as SubtitleStyle["font"],
-                  }))
-                }
+                onChange={(event) => setPanelStyle((current) => ({ ...current, font: event.target.value }))}
                 value={panelStyle.font ?? "Pretendard"}
               >
                 <option value="Pretendard">Pretendard</option>
@@ -466,117 +725,25 @@ export function ProjectEditPage({
               </select>
               <select
                 className="h-[52px] rounded-[10px] border border-[#303038] bg-[#121214] px-[14px] text-[14px] font-medium text-white outline-none"
-                onChange={(event) =>
-                  setPanelStyle((current) => ({
-                    ...current,
-                    font_size: Number(event.target.value),
-                  }))
-                }
+                onChange={(event) => setPanelStyle((current) => ({ ...current, font_size: Number(event.target.value) }))}
                 value={panelStyle.font_size ?? 24}
               >
                 {[16, 18, 20, 24, 28, 32].map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
+                  <option key={size} value={size}>{size}</option>
                 ))}
               </select>
             </div>
 
             <div className="flex items-center justify-between pt-[14px]">
-              <ScriptStyleButton
-                alt="bold"
-                isActive={editorUiState.bold}
-                onClick={() =>
-                  setSceneEditorUiState((current) => ({
-                    ...current,
-                    [selectedScene.id]: {
-                      ...editorUiState,
-                      bold: !editorUiState.bold,
-                    },
-                  }))
-                }
-                src={editorFontIconAssets.textBold}
-              />
-              <ScriptStyleButton
-                alt="italic"
-                isActive={editorUiState.italic}
-                onClick={() =>
-                  setSceneEditorUiState((current) => ({
-                    ...current,
-                    [selectedScene.id]: {
-                      ...editorUiState,
-                      italic: !editorUiState.italic,
-                    },
-                  }))
-                }
-                src={editorFontIconAssets.textItalic}
-              />
-              <ScriptStyleButton
-                alt="underline"
-                isActive={editorUiState.underline}
-                onClick={() =>
-                  setSceneEditorUiState((current) => ({
-                    ...current,
-                    [selectedScene.id]: {
-                      ...editorUiState,
-                      underline: !editorUiState.underline,
-                    },
-                  }))
-                }
-                src={editorFontIconAssets.textUnderline}
-              />
-              <ScriptStyleButton
-                alt="align left"
-                isActive={editorUiState.align === "left"}
-                onClick={() =>
-                  setSceneEditorUiState((current) => ({
-                    ...current,
-                    [selectedScene.id]: {
-                      ...editorUiState,
-                      align: "left",
-                    },
-                  }))
-                }
-                src={editorFontIconAssets.alignLeft}
-              />
-              <ScriptStyleButton
-                alt="align center"
-                isActive={editorUiState.align === "center"}
-                onClick={() =>
-                  setSceneEditorUiState((current) => ({
-                    ...current,
-                    [selectedScene.id]: {
-                      ...editorUiState,
-                      align: "center",
-                    },
-                  }))
-                }
-                src={editorFontIconAssets.alignCenter}
-              />
-              <ScriptStyleButton
-                alt="align right"
-                isActive={editorUiState.align === "right"}
-                onClick={() =>
-                  setSceneEditorUiState((current) => ({
-                    ...current,
-                    [selectedScene.id]: {
-                      ...editorUiState,
-                      align: "right",
-                    },
-                  }))
-                }
-                src={editorFontIconAssets.alignRight}
-              />
+              <ScriptStyleButton alt="align left" isActive={panelStyle.position === "top"} onClick={() => setPanelStyle((current) => ({ ...current, position: "top" }))} src={editorFontIconAssets.alignLeft} />
+              <ScriptStyleButton alt="align center" isActive={panelStyle.position === "center"} onClick={() => setPanelStyle((current) => ({ ...current, position: "center" }))} src={editorFontIconAssets.alignCenter} />
+              <ScriptStyleButton alt="align right" isActive={panelStyle.position === "bottom"} onClick={() => setPanelStyle((current) => ({ ...current, position: "bottom" }))} src={editorFontIconAssets.alignRight} />
             </div>
 
             <div className="mt-[16px] border-t border-[#303038] pt-[16px]">
               <div className="flex items-center justify-between">
                 <p className="text-[18px] font-semibold text-white">스타일</p>
-                <button
-                  className="text-white"
-                  onClick={() => setPanelStyle(defaultSubtitleStyle)}
-                  type="button"
-                >
+                <button className="text-white" onClick={() => setPanelStyle(defaultSubtitleStyle)} type="button">
                   <Icon className="size-5" name="reset" />
                 </button>
               </div>
@@ -586,12 +753,7 @@ export function ProjectEditPage({
                   <span className="text-[14px] font-medium text-white">글 색상</span>
                   <button
                     className="size-6 rounded-full border border-[#3b3b43]"
-                    onClick={() =>
-                      setPanelStyle((current) => ({
-                        ...current,
-                        color: current.color === "#FFFFFF" ? "#8B45FF" : "#FFFFFF",
-                      }))
-                    }
+                    onClick={() => setPanelStyle((current) => ({ ...current, color: current.color === "#FFFFFF" ? "#8B45FF" : "#FFFFFF" }))}
                     style={{ backgroundColor: panelStyle.color ?? "#FFFFFF" }}
                     type="button"
                   />
@@ -603,16 +765,7 @@ export function ProjectEditPage({
                     className="flex-1 accent-[#8b45ff]"
                     max={5}
                     min={1}
-                    onChange={(event) =>
-                      setPanelStyle((current) => ({
-                        ...current,
-                        shadow: {
-                          color: current.shadow?.color ?? "#FFFFFF",
-                          enabled: true,
-                          offset: Number(event.target.value),
-                        },
-                      }))
-                    }
+                    onChange={(event) => setPanelStyle((current) => ({ ...current, shadow: { color: current.shadow?.color ?? "#FFFFFF", enabled: true, offset: Number(event.target.value) } }))}
                     type="range"
                     value={panelStyle.shadow?.offset ?? 2}
                   />
@@ -627,16 +780,7 @@ export function ProjectEditPage({
                     className="flex-1 accent-[#8b45ff]"
                     max={100}
                     min={0}
-                    onChange={(event) =>
-                      setPanelStyle((current) => ({
-                        ...current,
-                        background: {
-                          color: current.background?.color ?? "#6A57FF",
-                          enabled: true,
-                          opacity: Number(event.target.value) / 100,
-                        },
-                      }))
-                    }
+                    onChange={(event) => setPanelStyle((current) => ({ ...current, background: { color: current.background?.color ?? "#6A57FF", enabled: true, opacity: Number(event.target.value) / 100 } }))}
                     type="range"
                     value={Math.round((panelStyle.background?.opacity ?? 0.11) * 100)}
                   />
@@ -647,21 +791,13 @@ export function ProjectEditPage({
               </div>
             </div>
 
-            <label className="mt-[18px] flex items-center gap-3">
-              <button
-                className={`flex size-8 items-center justify-center rounded-[10px] border ${
-                  applyAllScenes ? "border-[#8b45ff] bg-[rgba(139,69,255,0.12)]" : "border-[#8b45ff]"
-                }`}
-                onClick={() => setApplyAllScenes((current) => !current)}
-                type="button"
-              >
-                {applyAllScenes ? <Icon className="size-4 text-white" name="check" /> : null}
-              </button>
-              <span className="text-[16px] font-medium text-white">전체 적용</span>
-            </label>
-
-            <div className="pt-[18px]">
-              <Button className="w-full" size="tiny" onClick={applyScriptPanelChanges}>
+            <div className="flex gap-3 pt-[18px]">
+              {editingSubtitleIndex !== null ? (
+                <Button className="min-w-0 flex-1" size="tiny" variant="outlined" onClick={() => handleDeleteSubtitle(editingSubtitleIndex)}>
+                  삭제
+                </Button>
+              ) : null}
+              <Button className="min-w-0 flex-1" size="tiny" onClick={applyScriptPanelChanges}>
                 적용하기
               </Button>
             </div>

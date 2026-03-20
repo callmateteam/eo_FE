@@ -199,130 +199,86 @@ function SceneSlide() {
 }
 
 export function LandingFeatureShowcase() {
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const timeoutRef = useRef<number | null>(null);
-  const lockRef = useRef(false);
-  const activeIndexRef = useRef(0);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    activeIndexRef.current = activeIndex;
-  }, [activeIndex]);
+    const SCROLL_PER_SLIDE = window.innerHeight * 0.5;
 
-  useEffect(() => {
-    function releaseLock() {
-      lockRef.current = false;
-      timeoutRef.current = null;
+    function handleScroll() {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      const scrollWithin = window.scrollY - wrapper.offsetTop;
+      const index = Math.floor(scrollWithin / SCROLL_PER_SLIDE);
+      setActiveIndex(Math.max(0, Math.min(steps.length - 1, index)));
     }
 
-    function handleWheel(event: WheelEvent) {
-      const section = sectionRef.current;
-      if (!section) {
-        return;
-      }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
 
-      const rect = section.getBoundingClientRect();
-      const viewportCenter = window.innerHeight / 2;
-      const sectionContainsViewportCenter =
-        rect.top <= viewportCenter && rect.bottom >= viewportCenter;
-      const hasMeaningfulWheelInput = Math.abs(event.deltaY) > 8;
-
-      if (!sectionContainsViewportCenter || !hasMeaningfulWheelInput) {
-        return;
-      }
-
-      const direction = Math.sign(event.deltaY);
-      const currentIndex = activeIndexRef.current;
-      const nextIndex = Math.min(
-        steps.length - 1,
-        Math.max(0, currentIndex + direction)
-      );
-
-      if (nextIndex === currentIndex) {
-        return;
-      }
-
-      event.preventDefault();
-
-      if (lockRef.current) {
-        return;
-      }
-
-      lockRef.current = true;
-      setActiveIndex(nextIndex);
-
-      if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current);
-      }
-
-      timeoutRef.current = window.setTimeout(releaseLock, 720);
-    }
-
-    window.addEventListener("wheel", handleWheel, { passive: false });
-
-    return () => {
-      window.removeEventListener("wheel", handleWheel);
-      if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current);
-      }
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
-    <section ref={sectionRef} className="relative isolate h-screen overflow-hidden bg-gray-900">
-      <div className="mx-auto flex h-full w-full max-w-[1440px] flex-col px-10 pb-16 pt-20 md:px-[77px]">
-        <div className="mx-auto flex w-full max-w-[829px] flex-col items-center gap-3 text-center">
-          <h2 className="text-display-md m-0 text-white max-md:text-[38px] max-md:leading-[1.25]">
-            <span>AI가 만드는 </span>
-            <span className="bg-[linear-gradient(90deg,#6754f9_0%,#ba4eff_100%)] bg-clip-text text-transparent">
-              새로운 영상 제작
-            </span>
-          </h2>
-          <p className="text-heading-xl m-0 text-white max-md:text-[22px] max-md:leading-[1.5]">
-            복잡한 영상 편집 없이, AI와 함께 빠르고 트렌디한 영상을 제작하세요
-          </p>
-        </div>
-
-        <div className="mt-16 grid flex-1 min-h-0 grid-cols-[280px_minmax(0,1fr)] items-start gap-[68px]">
-          <div className="relative min-h-[766px] pt-[247px]">
-            <div className="absolute left-[27px] top-[82px] h-[766px] w-[3px] bg-[linear-gradient(180deg,rgba(44,44,49,0.6)_0%,rgba(142,142,147,1)_50%,rgba(44,44,49,0.6)_100%)]" />
-            <div className="flex flex-col gap-[120px]">
-              {steps.map((step, index) => (
-                <div key={step} className="flex items-center gap-6">
-                  <FeatureDot active={activeIndex === index} />
-                  <p
-                    className={cn(
-                      "text-heading-lg m-0 font-medium",
-                      activeIndex === index ? "text-gray-50" : "text-gray-300"
-                    )}
-                  >
-                    {step}
-                  </p>
-                </div>
-              ))}
-            </div>
+    <div ref={wrapperRef} style={{ height: `${steps.length * 50 + 100}vh` }}>
+      <section className="isolate sticky top-0 h-screen overflow-hidden bg-gray-900">
+        <div className="mx-auto flex h-full w-full max-w-[1440px] flex-col px-10 pb-16 pt-20 md:px-[77px]">
+          <div className="mx-auto flex w-full max-w-[829px] flex-col items-center gap-3 text-center">
+            <h2 className="text-display-md m-0 text-white max-md:text-[38px] max-md:leading-[1.25]">
+              <span>AI가 만드는 </span>
+              <span className="bg-[linear-gradient(90deg,#6754f9_0%,#ba4eff_100%)] bg-clip-text text-transparent">
+                새로운 영상 제작
+              </span>
+            </h2>
+            <p className="text-heading-xl m-0 text-white max-md:text-[22px] max-md:leading-[1.5]">
+              복잡한 영상 편집 없이, AI와 함께 빠르고 트렌디한 영상을 제작하세요
+            </p>
           </div>
 
-          <div className="flex min-h-0 items-start justify-center pt-[164px]">
-            <div className="w-[743px] overflow-hidden">
-              <div
-                className="flex w-[calc(743px*3)] transition-transform duration-700 ease-out"
-                style={{ transform: `translateX(-${activeIndex * 743}px)` }}
-              >
-                <div className="w-[743px] shrink-0">
-                  <CharacterSlide />
-                </div>
-                <div className="w-[743px] shrink-0">
-                  <StoryboardSlide />
-                </div>
-                <div className="w-[743px] shrink-0">
-                  <SceneSlide />
+          <div className="mt-16 grid flex-1 min-h-0 grid-cols-[200px_minmax(0,1fr)] items-start gap-[68px] lg:grid-cols-[280px_minmax(0,1fr)]">
+            <div className="relative pt-[8vh] lg:pt-[247px]">
+              <div className="absolute left-[27px] top-[82px] h-[766px] w-[3px] bg-[linear-gradient(180deg,rgba(44,44,49,0.6)_0%,rgba(142,142,147,1)_50%,rgba(44,44,49,0.6)_100%)]" />
+              <div className="flex flex-col gap-[6vh] lg:gap-[120px]">
+                {steps.map((step, index) => (
+                  <div key={step} className="flex items-center gap-6">
+                    <FeatureDot active={activeIndex === index} />
+                    <p
+                      className={cn(
+                        "text-heading-lg m-0 font-medium",
+                        activeIndex === index ? "text-gray-50" : "text-gray-300"
+                      )}
+                    >
+                      {step}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex min-h-0 items-start justify-center pt-[5vh] lg:pt-[164px]">
+              <div className="w-full max-w-[743px] overflow-hidden">
+                <div
+                  className="flex transition-transform duration-700 ease-out"
+                  style={{
+                    width: `${steps.length * 100}%`,
+                    transform: `translateX(-${activeIndex * (100 / steps.length)}%)`,
+                  }}
+                >
+                  <div className="shrink-0" style={{ width: `${100 / steps.length}%` }}>
+                    <CharacterSlide />
+                  </div>
+                  <div className="shrink-0" style={{ width: `${100 / steps.length}%` }}>
+                    <StoryboardSlide />
+                  </div>
+                  <div className="shrink-0" style={{ width: `${100 / steps.length}%` }}>
+                    <SceneSlide />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }

@@ -3,13 +3,12 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { useCharacters } from "@/hooks/useCharacters";
-import { useCustomCharacters } from "@/hooks/useCustomCharacters";
-import { createProject } from "@/lib/api/projects";
+import { useCharacters, useCustomCharacters } from "@/hooks/useCharacters";
+import { useCreateProject } from "@/hooks/useProjects";
 import {
   clearProjectDraft,
   getProjectDraft,
@@ -38,7 +37,7 @@ function CharacterSelectionCard({
 }) {
   return (
     <button
-      className={`relative overflow-hidden rounded-[20px] border bg-[#2a2a31] text-left transition-all ${
+      className={`relative cursor-pointer overflow-hidden rounded-[20px] border bg-[#2a2a31] text-left transition-all ${
         isSelected
           ? "border-[#b347ff] shadow-[0_0_0_1px_rgba(179,71,255,0.24)]"
           : "border-[#60606e]"
@@ -86,6 +85,7 @@ export function ProjectCreatePage() {
   const initialDraft = getProjectDraft();
   const presetCharactersQuery = useCharacters();
   const customCharactersQuery = useCustomCharacters();
+  const createProjectMutation = useCreateProject();
   const [selectedCharacterKey, setSelectedCharacterKey] = useState<string | null>(
     initialDraft?.characterId && initialDraft.characterSource
       ? `${initialDraft.characterSource}:${initialDraft.characterId}`
@@ -124,40 +124,39 @@ export function ProjectCreatePage() {
       (character) => `${character.source}:${character.id}` === selectedCharacterKey
     ) ?? null;
 
-  const createProjectMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedCharacter) {
-        throw new Error("캐릭터를 먼저 선택해주세요.");
-      }
+  async function handleCreateProject() {
+    if (!selectedCharacter) {
+      setCreateError("캐릭터를 먼저 선택해주세요.");
+      return;
+    }
 
-      return createProject({
+    setCreateError(null);
+
+    try {
+      const project = await createProjectMutation.mutateAsync({
         character_id:
           selectedCharacter.source === "preset" ? selectedCharacter.id : null,
         custom_character_id:
           selectedCharacter.source === "custom" ? selectedCharacter.id : null,
         title: "프로젝트명",
       });
-    },
-    onSuccess: (project) => {
+
       clearProjectDraft();
       setProjectDraft({
-        characterId: selectedCharacter?.id,
-        characterImage: selectedCharacter?.imageUrl,
-        characterName: selectedCharacter?.name,
-        characterSource: selectedCharacter?.source,
+        characterId: selectedCharacter.id,
+        characterImage: selectedCharacter.imageUrl,
+        characterName: selectedCharacter.name,
+        characterSource: selectedCharacter.source,
         projectId: project.id,
         title: project.title,
       });
-      void queryClient.invalidateQueries({ queryKey: ["projects"] });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       router.push(`/project/create/idea?projectId=${encodeURIComponent(project.id)}`);
-    },
-    onError: (error) => {
+    } catch (error) {
       setCreateError(
         error instanceof Error ? error.message : "프로젝트 생성에 실패했습니다."
       );
-    },
-  });
+    }
+  }
 
   return (
     <ProjectCreateShell
@@ -173,10 +172,7 @@ export function ProjectCreatePage() {
           <Button
             size="tiny"
             disabled={!selectedCharacter || createProjectMutation.isPending}
-            onClick={() => {
-              setCreateError(null);
-              createProjectMutation.mutate();
-            }}
+            onClick={() => void handleCreateProject()}
           >
             캐릭터 선택
           </Button>

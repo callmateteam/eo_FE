@@ -30,7 +30,7 @@ export function Menu({
       )}
     >
       <div className="flex w-full items-center justify-center px-3 py-2">
-        <MenuButton onClick={onEdit} state="hovered">
+        <MenuButton onClick={onEdit}>
           {editLabel}
         </MenuButton>
       </div>

@@ -11,8 +11,8 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
+import { getVideoInfo } from "@/lib/api/video-edit";
 import { ApiError } from "@/lib/api/client";
-import { getStoryboardVideoInfo } from "@/lib/api/storyboards";
 
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -36,6 +36,30 @@ type ProjectToastContextValue = {
 
 const ProjectToastContext = createContext<ProjectToastContextValue | null>(null);
 
+function readTrackingFromStorage() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const storedValue = window.localStorage.getItem(TRACKING_STORAGE_KEY);
+
+  if (!storedValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(storedValue) as TrackingPayload;
+
+    if (parsed.projectId && parsed.storyboardId) {
+      return parsed;
+    }
+  } catch {
+    window.localStorage.removeItem(TRACKING_STORAGE_KEY);
+  }
+
+  return null;
+}
+
 export function useProjectToast() {
   const context = useContext(ProjectToastContext);
 
@@ -48,27 +72,11 @@ export function useProjectToast() {
 
 export function ProjectToastProvider({ children }: PropsWithChildren) {
   const router = useRouter();
-  const [tracking, setTracking] = useState<TrackingPayload | null>(null);
+  const [tracking, setTracking] = useState<TrackingPayload | null>(() =>
+    readTrackingFromStorage()
+  );
   const [completion, setCompletion] = useState<CompletionPayload | null>(null);
   const intervalRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const storedValue = window.localStorage.getItem(TRACKING_STORAGE_KEY);
-
-    if (!storedValue) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(storedValue) as TrackingPayload;
-
-      if (parsed.projectId && parsed.storyboardId) {
-        setTracking(parsed);
-      }
-    } catch {
-      window.localStorage.removeItem(TRACKING_STORAGE_KEY);
-    }
-  }, []);
 
   useEffect(() => {
     if (!tracking) {
@@ -85,17 +93,27 @@ export function ProjectToastProvider({ children }: PropsWithChildren) {
 
     const poll = async () => {
       try {
-        const videoInfo = await getStoryboardVideoInfo(tracking.storyboardId);
-        setCompletion({
-          projectId: tracking.projectId,
-          storyboardId: tracking.storyboardId,
-          title: videoInfo.title,
-        });
-        setTracking(null);
+        const info = await getVideoInfo(tracking.storyboardId);
+        const status = info.status?.toUpperCase();
+
+        // Only mark complete when video is actually ready
+        if (status === "READY" || status === "COMPLETED" || status === "COMPLETE") {
+          setCompletion({
+            projectId: tracking.projectId,
+            storyboardId: tracking.storyboardId,
+            title: info.title,
+          });
+          setTracking(null);
+        }
+        // Other statuses (e.g. RENDERING) — keep polling
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) {
+          // Still rendering, keep polling
           return;
         }
+
+        // Unexpected error, stop tracking
+        setTracking(null);
       }
     };
 
@@ -111,6 +129,13 @@ export function ProjectToastProvider({ children }: PropsWithChildren) {
       }
     };
   }, [tracking]);
+
+  // Auto-dismiss completion toast after 6 seconds
+  useEffect(() => {
+    if (!completion) return;
+    const timer = setTimeout(() => setCompletion(null), 6000);
+    return () => clearTimeout(timer);
+  }, [completion]);
 
   const value = useMemo<ProjectToastContextValue>(
     () => ({

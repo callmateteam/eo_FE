@@ -2,26 +2,24 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
-import { ApiError } from "@/lib/api/client";
 import { useProjectToast } from "@/components/providers/ProjectToastProvider";
 import { Button } from "@/components/ui/Button";
-import { getProject, updateProject } from "@/lib/api/projects";
+import { Icon } from "@/components/ui/Icon";
+import { getProjectDraft } from "@/lib/project-draft";
+import { ApiError } from "@/lib/api/client";
+import { getProject } from "@/lib/api/projects";
+import { getVideoEdit } from "@/lib/api/video-edit";
 import {
-  generateStoryboardVideos,
-  getVideoEdit,
-  getStoryboard,
-  isStoryboardReady,
-  regenerateStoryboardSceneImage,
-  updateStoryboardScene,
-  waitForSceneImageReady,
-  type StoryboardScene,
-} from "@/lib/api/storyboards";
-import { getProjectDraft, updateProjectDraft } from "@/lib/project-draft";
+  useStoryboard,
+  useUpdateScene,
+  useRegenerateSceneImage,
+  useGenerateVideos,
+} from "@/hooks/useStoryboard";
+import { useUpdateProject } from "@/hooks/useProjects";
+import type { SceneItem } from "@/lib/api/types";
 
 import { ProjectCreateShell } from "@/components/project-create/ProjectCreateShell";
 import { VideoGenerateProgressModal } from "@/components/character-create/modals/VideoGenerateProgressModal";
@@ -31,31 +29,15 @@ type ProjectStoryboardPageProps = {
   storyboardId?: string;
 };
 
-function hasPendingStoryboardAssets(scenes: StoryboardScene[]) {
-  if (scenes.length === 0) {
-    return true;
-  }
-
-  return scenes.some((scene) => {
-    const imageStatus = scene.image_status?.toUpperCase();
-    return imageStatus !== "COMPLETED";
-  });
-}
-
-function isFailedImageStatus(scene: StoryboardScene) {
+function isFailedImageStatus(scene: SceneItem) {
   const imageStatus = scene.image_status?.toUpperCase();
-
   return imageStatus === "FAILED" || imageStatus === "ERROR";
 }
 
-function isPendingImageStatus(scene: StoryboardScene) {
+function isPendingImageStatus(scene: SceneItem) {
   const imageStatus = scene.image_status?.toUpperCase();
-
-  if (!imageStatus) {
-    return !scene.image_url;
-  }
-
-  return !isFailedImageStatus(scene) && imageStatus !== "COMPLETED" && !scene.image_url;
+  if (!imageStatus) return !scene.image_url;
+  return !isFailedImageStatus(scene) && imageStatus !== "COMPLETED";
 }
 
 export function ProjectStoryboardPage({
@@ -63,7 +45,6 @@ export function ProjectStoryboardPage({
   storyboardId,
 }: ProjectStoryboardPageProps) {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { startVideoGenerationTracking } = useProjectToast();
   const draft = getProjectDraft();
   const resolvedProjectId = projectId ?? draft?.projectId ?? "";
@@ -76,40 +57,78 @@ export function ProjectStoryboardPage({
   const [regeneratingSceneId, setRegeneratingSceneId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false);
-  const [isWaitingForVideoEdit, setIsWaitingForVideoEdit] = useState(false);
+  const [shouldPoll, setShouldPoll] = useState(true);
+  const [showStoryboardToast, setShowStoryboardToast] = useState(false);
+  const prevShouldPollRef = useRef(true);
+
+  // Storyboard data with polling: refetch every 3s while any scene has a pending image
+  const { data: storyboardData, isLoading: isLoadingStoryboard } = useStoryboard(
+    resolvedStoryboardId,
+    { refetchInterval: shouldPoll ? 3000 : false },
+  );
+
+  const scenes: SceneItem[] = storyboardData?.scenes ?? [];
+
+  // Update polling state: keep polling while storyboard has no scenes yet or any scene image is pending
+  useEffect(() => {
+    if (!storyboardData) return;
+
+    const status = storyboardData.status?.toUpperCase();
+    const hasScenes = storyboardData.scenes.length > 0;
+    const hasPending = storyboardData.scenes.some((scene) => isPendingImageStatus(scene));
+
+    // Keep polling if: storyboard is still generating, no scenes yet, or scenes have pending images
+    const nextShouldPoll = !hasScenes || hasPending || status === "GENERATING";
+    setShouldPoll(nextShouldPoll);
+
+    // Show toast when polling completes and storyboard has scenes
+    if (prevShouldPollRef.current && !nextShouldPoll && hasScenes) {
+      setShowStoryboardToast(true);
+    }
+    prevShouldPollRef.current = nextShouldPoll;
+  }, [storyboardData]);
+
+  const updateSceneMutation = useUpdateScene();
+  const regenerateSceneImageMutation = useRegenerateSceneImage();
+  const generateVideosMutation = useGenerateVideos();
+  const updateProjectMutation = useUpdateProject();
 
   useEffect(() => {
     if (!resolvedProjectId || !resolvedStoryboardId) {
       router.replace("/project/create");
-      return;
     }
+  }, [resolvedProjectId, resolvedStoryboardId, router]);
 
-    if (!draft?.title) {
-      void getProject(resolvedProjectId)
+  // Fetch project title on mount if draft has no title
+  useEffect(() => {
+    if (!draft?.title && resolvedProjectId) {
+      getProject(resolvedProjectId)
         .then((project) => {
           setProjectTitle(project.title);
-          updateProjectDraft({ projectId: resolvedProjectId, title: project.title });
         })
-        .catch(() => undefined);
+        .catch(() => {
+          // ignore - keep default title
+        });
     }
-  }, [draft?.title, resolvedProjectId, resolvedStoryboardId, router]);
+  }, [resolvedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const storyboardQuery = useQuery({
-    enabled: Boolean(resolvedStoryboardId),
-    queryFn: () => getStoryboard(resolvedStoryboardId),
-    queryKey: ["storyboard", resolvedStoryboardId],
-    refetchInterval: (query) => {
-      const data = query.state.data;
+  // Auto-dismiss storyboard completion toast after 5 seconds
+  useEffect(() => {
+    if (!showStoryboardToast) return;
+    const timer = setTimeout(() => setShowStoryboardToast(false), 5000);
+    return () => clearTimeout(timer);
+  }, [showStoryboardToast]);
 
-      if (!data) {
-        return 3000;
+  // Clear regeneratingSceneId when the scene image is no longer pending
+  useEffect(() => {
+    if (regeneratingSceneId && storyboardData) {
+      const scene = storyboardData.scenes.find((s) => s.id === regeneratingSceneId);
+      if (scene && !isPendingImageStatus(scene)) {
+        setRegeneratingSceneId(null);
       }
+    }
+  }, [regeneratingSceneId, storyboardData]);
 
-      return isStoryboardReady(data) ? false : 3000;
-    },
-  });
-
-  const scenes = useMemo(() => storyboardQuery.data?.scenes ?? [], [storyboardQuery.data?.scenes]);
   const hasScenes = scenes.length > 0;
   const hasFailedScenes = scenes.some((scene) => isFailedImageStatus(scene));
   const hasPendingScenes = scenes.some((scene) => isPendingImageStatus(scene));
@@ -124,140 +143,108 @@ export function ProjectStoryboardPage({
       }
     : { content: "", title: "" };
 
-  const saveSceneMutation = useMutation({
-    mutationFn: async () => {
-      if (!resolvedStoryboardId || !selectedScene) {
-        throw new Error("저장할 씬을 찾을 수 없습니다.");
-      }
+  async function handleSaveScene() {
+    if (!selectedScene) return;
+    const draft = sceneDrafts[selectedScene.id];
+    if (!draft) return;
 
-      return updateStoryboardScene(resolvedStoryboardId, selectedScene.id, {
-        content: selectedSceneDraft.content,
-        title: selectedSceneDraft.title,
-      });
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ["storyboard", resolvedStoryboardId],
-      });
-    },
-    onError: (error) => {
-      setErrorMessage(
-        error instanceof Error ? error.message : "씬 저장에 실패했습니다."
-      );
-    },
-  });
-
-  const regenerateMutation = useMutation({
-    mutationFn: async () => {
-      if (!resolvedStoryboardId || !selectedScene) {
-        throw new Error("재생성할 씬을 찾을 수 없습니다.");
-      }
-
-      setRegeneratingSceneId(selectedScene.id);
-      await regenerateStoryboardSceneImage(resolvedStoryboardId, selectedScene.id);
-      await waitForSceneImageReady(resolvedStoryboardId, selectedScene.id);
-    },
-    onSuccess: () => {
-      setRegeneratingSceneId(null);
-      void queryClient.invalidateQueries({
-        queryKey: ["storyboard", resolvedStoryboardId],
-      });
-    },
-    onError: (error) => {
-      setRegeneratingSceneId(null);
-      setErrorMessage(
-        error instanceof Error ? error.message : "이미지 재생성에 실패했습니다."
-      );
-    },
-  });
-
-  const generateVideosMutation = useMutation({
-    mutationFn: async () => {
-      if (!resolvedStoryboardId || !resolvedProjectId) {
-        throw new Error("프로젝트 정보를 찾을 수 없습니다.");
-      }
-
-      await updateProject(resolvedProjectId, {
-        current_stage: 3,
-        storyboard_id: resolvedStoryboardId,
-      });
-
-      return generateStoryboardVideos(resolvedStoryboardId);
-    },
-    onSuccess: () => {
-      updateProjectDraft({
-        projectId: resolvedProjectId,
+    try {
+      await updateSceneMutation.mutateAsync({
         storyboardId: resolvedStoryboardId,
-        title: projectTitle,
+        sceneId: selectedScene.id,
+        payload: { title: draft.title, content: draft.content },
       });
+
+      // 저장 후 자동으로 이미지 재생성 (STALE 상태가 되므로)
+      setRegeneratingSceneId(selectedScene.id);
+      setShouldPoll(true);
+      await regenerateSceneImageMutation.mutateAsync({
+        storyboardId: resolvedStoryboardId,
+        sceneId: selectedScene.id,
+      });
+    } catch (error) {
+      setRegeneratingSceneId(null);
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("씬 저장에 실패했습니다. 다시 시도해주세요.");
+      }
+    }
+  }
+
+  async function handleRegenerateImage() {
+    if (!selectedScene) return;
+
+    try {
+      setRegeneratingSceneId(selectedScene.id);
+      await regenerateSceneImageMutation.mutateAsync({
+        storyboardId: resolvedStoryboardId,
+        sceneId: selectedScene.id,
+      });
+      // Polling will pick up the new status automatically
+    } catch (error) {
+      setRegeneratingSceneId(null);
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("이미지 재생성에 실패했습니다. 다시 시도해주세요.");
+      }
+    }
+  }
+
+  async function handleGenerateVideos() {
+    if (!resolvedStoryboardId) return;
+
+    try {
+      await generateVideosMutation.mutateAsync(resolvedStoryboardId);
+
+      // Update project stage
+      if (resolvedProjectId) {
+        await updateProjectMutation.mutateAsync({
+          projectId: resolvedProjectId,
+          payload: { current_stage: 3 },
+        });
+      }
+
+      // Start video generation tracking toast
       startVideoGenerationTracking({
         projectId: resolvedProjectId,
         storyboardId: resolvedStoryboardId,
       });
+
+      // Poll for video edit readiness then navigate
       setIsGenerationModalOpen(true);
-      setIsWaitingForVideoEdit(true);
-    },
-    onError: (error) => {
-      setErrorMessage(
-        error instanceof Error ? error.message : "영상 생성에 실패했습니다."
-      );
-    },
-  });
 
-  useEffect(() => {
-    if (!isWaitingForVideoEdit || !resolvedStoryboardId || !resolvedProjectId) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    const poll = async () => {
-      try {
-        await getVideoEdit(resolvedStoryboardId);
-
-        if (isCancelled) {
-          return;
+      const pollVideoEdit = async () => {
+        const maxAttempts = 120; // ~10 minutes at 5s intervals
+        for (let i = 0; i < maxAttempts; i++) {
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          try {
+            const videoEdit = await getVideoEdit(resolvedStoryboardId);
+            if (videoEdit) {
+              setIsGenerationModalOpen(false);
+              router.push(
+                `/project/${resolvedProjectId}/edit?storyboardId=${encodeURIComponent(
+                  resolvedStoryboardId
+                )}`
+              );
+              return;
+            }
+          } catch {
+            // Not ready yet, continue polling
+          }
         }
+      };
 
-        setIsWaitingForVideoEdit(false);
-        setIsGenerationModalOpen(false);
-        router.push(
-          `/project/${resolvedProjectId}/edit?storyboardId=${encodeURIComponent(
-            resolvedStoryboardId
-          )}`
-        );
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 404) {
-          return;
-        }
-
-        if (!isCancelled) {
-          setIsWaitingForVideoEdit(false);
-          setIsGenerationModalOpen(false);
-          setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "영상 편집 화면을 준비하지 못했습니다."
-          );
-        }
+      void pollVideoEdit();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("영상 생성에 실패했습니다. 다시 시도해주세요.");
       }
-    };
-
-    void poll();
-    const intervalId = window.setInterval(() => {
-      void poll();
-    }, 5000);
-
-    return () => {
-      isCancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [
-    isWaitingForVideoEdit,
-    resolvedProjectId,
-    resolvedStoryboardId,
-    router,
-  ]);
+    }
+  }
 
   return (
     <ProjectCreateShell
@@ -286,13 +273,14 @@ export function ProjectStoryboardPage({
             size="tiny"
             disabled={
               !resolvedStoryboardId ||
-              storyboardQuery.isLoading ||
-              hasPendingStoryboardAssets(scenes) ||
-              generateVideosMutation.isPending
+              isLoadingStoryboard ||
+              !hasScenes ||
+              hasPendingScenes ||
+              hasFailedScenes
             }
             onClick={() => {
               setErrorMessage(null);
-              generateVideosMutation.mutate();
+              void handleGenerateVideos();
             }}
           >
             영상 생성
@@ -306,7 +294,7 @@ export function ProjectStoryboardPage({
         </p>
       ) : null}
 
-      {storyboardQuery.isLoading && !hasScenes ? (
+      {isLoadingStoryboard && !hasScenes ? (
         <div className="flex min-h-[360px] items-center justify-center">
           <div className="flex items-center gap-3 text-[#d7d7dc]">
             <span className="inline-flex size-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
@@ -351,11 +339,11 @@ export function ProjectStoryboardPage({
                     }}
                     type="button"
                   >
-                    <div className="relative h-[130px] overflow-hidden bg-white">
+                    <div className="relative h-[160px] overflow-hidden bg-[#18181d]">
                       {scene.image_url ? (
                         <img
                           alt={scene.title}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                           src={scene.image_url}
                         />
                       ) : (
@@ -406,13 +394,13 @@ export function ProjectStoryboardPage({
               {selectedScene?.title ?? "#1 씬 제목"}
             </p>
 
-            <div className="mt-[18px] h-[164px] overflow-hidden rounded-[18px] bg-white">
+            <div className="mt-[18px] h-[200px] overflow-hidden rounded-[18px] bg-[#18181d]">
               {selectedScene ? (
                 <div className="relative h-full w-full">
                   {selectedScene.image_url ? (
                     <img
                       alt={selectedScene.title}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                       src={selectedScene.image_url}
                     />
                   ) : (
@@ -452,13 +440,13 @@ export function ProjectStoryboardPage({
               className="mt-[14px] w-full"
               size="tiny"
               variant="outlined"
-              disabled={regenerateMutation.isPending || !selectedScene}
+              disabled={!selectedScene}
               onClick={() => {
                 setErrorMessage(null);
-                regenerateMutation.mutate();
+                void handleRegenerateImage();
               }}
             >
-              {regenerateMutation.isPending ? "재생성 중" : "이미지 재생성"}
+              이미지 재생성
             </Button>
 
             <div className="pt-[22px]">
@@ -499,10 +487,10 @@ export function ProjectStoryboardPage({
             <Button
               className="mt-auto w-full"
               size="tiny"
-              disabled={saveSceneMutation.isPending || !selectedScene}
+              disabled={!selectedScene}
               onClick={() => {
                 setErrorMessage(null);
-                saveSceneMutation.mutate();
+                void handleSaveScene();
               }}
             >
               변경사항 저장
@@ -515,15 +503,26 @@ export function ProjectStoryboardPage({
         <VideoGenerateProgressModal
           onGoDashboard={() => {
             setIsGenerationModalOpen(false);
-            setIsWaitingForVideoEdit(false);
             router.push("/dashboard");
           }}
           onGoNext={() => {
             setIsGenerationModalOpen(false);
-            setIsWaitingForVideoEdit(false);
             router.push("/project/create");
           }}
         />
+      ) : null}
+
+      {showStoryboardToast ? (
+        <div className="pointer-events-none fixed bottom-[28px] left-[107px] z-[90]">
+          <div className="flex min-w-[398px] items-center gap-4 rounded-[20px] bg-[linear-gradient(90deg,#9747ff_0%,#d456ff_100%)] px-[22px] py-[14px] shadow-[0_12px_30px_rgba(151,71,255,0.3)]">
+            <div className="flex size-7 items-center justify-center rounded-full bg-[#1f1f24] text-white">
+              <Icon className="size-4" name="check" />
+            </div>
+            <span className="text-[14px] font-semibold text-white">
+              스토리보드 생성이 완료되었어요
+            </span>
+          </div>
+        </div>
       ) : null}
     </ProjectCreateShell>
   );

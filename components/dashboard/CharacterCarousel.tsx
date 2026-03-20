@@ -2,11 +2,18 @@
 
 import { useRef } from "react";
 
-import type { DashboardCharacter } from "@/lib/api/dashboard";
-
 import { CharacterCard } from "@/components/dashboard/CharacterCard";
 import { CharacterCreateCard } from "@/components/dashboard/CharacterCreateCard";
 import { Icon } from "@/components/ui/Icon";
+import { useDeleteCustomCharacter } from "@/hooks/useCharacters";
+
+type DashboardCharacter = {
+  id: string;
+  name: string;
+  type?: string;
+  thumbnail_url?: string;
+  image_url?: string;
+};
 
 type CharacterCarouselProps = {
   characters: DashboardCharacter[];
@@ -14,6 +21,7 @@ type CharacterCarouselProps = {
 
 export function CharacterCarousel({ characters }: CharacterCarouselProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const deleteCustomCharacterMutation = useDeleteCustomCharacter();
   const hasCharacters = characters.length > 0;
 
   function scrollByOffset(direction: "left" | "right") {
@@ -62,11 +70,19 @@ export function CharacterCarousel({ characters }: CharacterCarouselProps) {
         <div className="snap-start">
           <CharacterCreateCard />
         </div>
-        {characters.map((character, index) => (
-          <div key={character.id} className="snap-start">
-            <CharacterCard character={character} index={index} />
-          </div>
-        ))}
+        {characters.map((character, index) => {
+          const isCustom = character.type?.toLowerCase() !== "preset";
+          return (
+            <div key={character.id} className="snap-start">
+              <CharacterCard
+                character={character}
+                index={index}
+                onDelete={isCustom ? () => deleteCustomCharacterMutation.mutate(character.id) : undefined}
+                onEdit={isCustom ? () => undefined : undefined}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -16,7 +16,6 @@ const meta = {
     imageSrc: "/assets/landing/cards/storyboard-cover-1.png",
     onDelete: () => undefined,
     onEdit: () => undefined,
-    progressLabel: "12%",
     statusLabel: "진행 중",
     title: "Title",
   },

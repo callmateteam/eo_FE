@@ -1,56 +1,23 @@
-import type { ReactNode } from "react";
-
 import Image from "next/image";
 import Link from "next/link";
 
+import { LandingCTAButton } from "@/components/landing/LandingCTAButton";
 import { LandingFeatureShowcase } from "@/components/landing/LandingFeatureShowcase";
-import { Button } from "@/components/ui/Button";
+import { LandingFooter } from "@/components/landing/LandingFooter";
 import { Icon } from "@/components/ui/Icon";
-
-function LandingButton({
-  children,
-  className,
-  outlined = false,
-}: {
-  children: ReactNode;
-  className?: string;
-  outlined?: boolean;
-}) {
-  return (
-    <Button
-      className={[
-        "min-w-0 rounded-full px-4 shadow-[0_1px_8px_4px_rgba(186,78,255,0.13)]",
-        outlined
-          ? "h-12 border border-primary-500 bg-gray-800 text-gray-50"
-          : "h-13 bg-primary-500 text-gray-50",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      iconAfter={undefined}
-      iconBefore={undefined}
-      size={outlined ? "sm" : "md"}
-      variant={outlined ? "outlined" : "filled"}
-    >
-      {children}
-    </Button>
-  );
-}
 
 export default function Home() {
   return (
     <main className="bg-gray-900 text-gray-50">
       <header className="relative z-30 h-20 bg-[rgba(44,44,49,0.88)] backdrop-blur-[10px]">
         <div className="mx-auto flex h-full w-full max-w-[1440px] items-center justify-between px-10 md:px-20">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-[linear-gradient(220.79deg,#ba4eff_7.66%,#6954f9_64.14%)]">
-            <Image
-              alt="Easy & Only 로고"
-              height={36.48}
-              priority
-              src="/landing/logo.png"
-              width={35.52}
-            />
-          </div>
+          <Image
+            alt="Eastaid Video 로고"
+            src="/Logo/Logo-120_40.svg"
+            width={120}
+            height={40}
+            priority
+          />
           <Link
             className="inline-flex h-12 items-center justify-center rounded-full border border-primary-500 bg-gray-800 px-4 text-label-md text-gray-50 shadow-[0_1px_8px_4px_rgba(186,78,255,0.13)]"
             href="/login"
@@ -75,7 +42,7 @@ export default function Home() {
               </h1>
             </div>
 
-            <LandingButton className="w-fit">지금 바로 만들기</LandingButton>
+            <LandingCTAButton className="w-fit" />
           </div>
 
           <div className="relative mx-auto h-[602px] w-full max-w-[397px] rounded-[32px] border border-gray-700 bg-gray-800 shadow-[0_1px_36px_8px_rgba(186,78,255,0.08)]">
@@ -95,9 +62,11 @@ export default function Home() {
           <h2 className="text-heading-xl m-0 text-white max-md:text-[28px] max-md:leading-10">
             지금 시작하고, 첫 영상을 무료로 만들어보세요
           </h2>
-          <LandingButton className="w-fit">지금 바로 만들기</LandingButton>
+          <LandingCTAButton className="w-fit" />
         </div>
       </section>
+
+      <LandingFooter />
     </main>
   );
 }
