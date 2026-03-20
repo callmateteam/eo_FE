@@ -7,7 +7,9 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useLogout } from "@/hooks/useAuth";
+import { useYouTubeConnect, useYouTubeDisconnect } from "@/hooks/useYouTube";
 import { socialAssets } from "@/lib/assets";
+import { openYouTubeOAuthPopup } from "@/lib/youtubeOAuth";
 
 type SidebarProfilePanelProps = {
   isOpen: boolean;
@@ -20,6 +22,9 @@ type SocialRowProps = {
   connected: boolean;
   iconSrc: string;
   label: string;
+  onConnect?: () => void;
+  onDisconnect?: () => void;
+  isPending?: boolean;
 };
 
 function SocialRow({
@@ -27,6 +32,9 @@ function SocialRow({
   connected,
   iconSrc,
   label,
+  onConnect,
+  onDisconnect,
+  isPending,
 }: SocialRowProps) {
   return (
     <div className="flex items-center justify-between gap-3">
@@ -47,11 +55,13 @@ function SocialRow({
 
       <button
         className={[
-          "inline-flex h-9 min-w-[58px] cursor-pointer items-center justify-center rounded-full px-4 text-[14px] leading-none font-medium",
+          "inline-flex h-9 min-w-[58px] cursor-pointer items-center justify-center rounded-full px-4 text-[14px] leading-none font-medium disabled:cursor-not-allowed disabled:opacity-50",
           connected
             ? "border border-[#ff4343] bg-transparent text-[#ff4343]"
             : "bg-[#3b3b43] text-[#c7c7cf]",
         ].join(" ")}
+        disabled={isPending}
+        onClick={connected ? onDisconnect : onConnect}
         type="button"
       >
         {connected ? "해제" : "연동"}
@@ -71,6 +81,18 @@ export function SidebarProfilePanel({
   const previousPathnameRef = useRef(pathname);
   const { data: user } = useCurrentUser();
   const logoutMutation = useLogout();
+  const youtubeConnect = useYouTubeConnect();
+  const youtubeDisconnect = useYouTubeDisconnect();
+
+  function handleYouTubeConnect() {
+    openYouTubeOAuthPopup((code, redirectUri) => {
+      youtubeConnect.mutate({ code, redirect_uri: redirectUri });
+    });
+  }
+
+  function handleYouTubeDisconnect() {
+    youtubeDisconnect.mutate();
+  }
 
   useEffect(() => {
     if (previousPathnameRef.current !== pathname && isOpen) {
@@ -152,7 +174,10 @@ export function SidebarProfilePanel({
               accountText={user?.social.youtube ? "내 계정" : "계정 정보 없음"}
               connected={Boolean(user?.social.youtube)}
               iconSrc={socialAssets.youtube}
+              isPending={youtubeConnect.isPending || youtubeDisconnect.isPending}
               label="Youtube"
+              onConnect={handleYouTubeConnect}
+              onDisconnect={handleYouTubeDisconnect}
             />
             <SocialRow
               accountText={user?.social.tiktok ? "내 계정" : "계정 정보 없음"}

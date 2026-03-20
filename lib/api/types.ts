@@ -419,8 +419,24 @@ export type YouTubeUploadPayload = {
   privacy_status?: string;
 };
 
+export type YouTubeConnectResponse = {
+  channel_title: string;
+  message: string;
+};
+
+export type YouTubeDisconnectResponse = {
+  message: string;
+};
+
 export type YouTubeUploadResponse = {
   youtube_video_id: string;
   youtube_url: string;
   message: string;
+};
+
+export type YouTubeStatusResponse = {
+  status: string;
+  youtube_video_id?: string | null;
+  youtube_url?: string | null;
+  error?: string | null;
 };
