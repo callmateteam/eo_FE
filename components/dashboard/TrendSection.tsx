@@ -15,6 +15,7 @@ type DashboardTrendKeyword = {
 type TrendSectionProps = {
   creationTrends: DashboardCreationTrend[];
   trendingKeywords: DashboardTrendKeyword[];
+  isLoading?: boolean;
 };
 
 type TrendItem = {
@@ -22,22 +23,6 @@ type TrendItem = {
   rank: number;
   subtitle?: string | number | null;
 };
-
-const fallbackTrendingKeywords: TrendItem[] = [
-  { label: "봄동 비빔밥", rank: 1, subtitle: "1.2M View" },
-  { label: "봄동 비빔밥", rank: 2, subtitle: "1.2M View" },
-  { label: "봄동 비빔밥", rank: 3, subtitle: "1.2M View" },
-  { label: "봄동 비빔밥", rank: 4, subtitle: "1.2M View" },
-  { label: "봄동 비빔밥", rank: 5, subtitle: "1.2M View" },
-];
-
-const fallbackCreationTrends: TrendItem[] = [
-  { label: "봄동 비빔밥", rank: 1, subtitle: "1.2M Created" },
-  { label: "봄동 비빔밥", rank: 2, subtitle: "1.2M Created" },
-  { label: "봄동 비빔밥", rank: 3, subtitle: "1.2M Created" },
-  { label: "봄동 비빔밥", rank: 4, subtitle: "1.2M Created" },
-  { label: "봄동 비빔밥", rank: 5, subtitle: "1.2M Created" },
-];
 
 function getIndicator(rank: number) {
   if (rank === 1) {
@@ -110,27 +95,86 @@ function TrendColumn({
   );
 }
 
+function TrendColumnSkeleton({ title }: { title: string }) {
+  return (
+    <section className="flex min-w-0 flex-1 flex-col">
+      <h3 className="mb-[18px] text-[14px] font-semibold leading-none tracking-[-0.02em] text-white">
+        {title}
+      </h3>
+      <ol className="space-y-[2px]">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <li
+            key={i}
+            className="grid grid-cols-[24px_minmax(0,1fr)_28px] items-center gap-[18px] border-b border-[#23232a] py-[13px]"
+          >
+            <div className="h-4 w-4 animate-pulse rounded bg-[#2a2a35]" />
+            <div className="space-y-2">
+              <div className="h-3 w-3/4 animate-pulse rounded bg-[#2a2a35]" />
+              <div className="h-2 w-1/2 animate-pulse rounded bg-[#2a2a35]" />
+            </div>
+            <div className="h-4 w-4 animate-pulse rounded bg-[#2a2a35]" />
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function TrendEmpty() {
+  return (
+    <div className="flex min-h-[280px] items-center justify-center">
+      <p className="text-[14px] text-[#8d8d96]">아직 트렌드 데이터가 없습니다</p>
+    </div>
+  );
+}
+
 export function TrendSection({
   creationTrends,
   trendingKeywords,
+  isLoading,
 }: TrendSectionProps) {
-  const trendingItems =
-    trendingKeywords.length > 0
-      ? trendingKeywords.map((item) => ({
-          label: item.keyword,
-          rank: item.rank,
-          subtitle: `${item.avg_views.toLocaleString()} Views`,
-        }))
-      : fallbackTrendingKeywords;
+  if (isLoading) {
+    return (
+      <section className="pt-[33px]">
+        <h2 className="mb-[21px] text-[18px] font-semibold leading-none tracking-[-0.03em] text-white">
+          실시간 영상 제작 트렌드
+        </h2>
+        <div className="grid grid-cols-2 gap-[40px]">
+          <div className="pr-[40px]">
+            <TrendColumnSkeleton title="유튜브 인기 키워드" />
+          </div>
+          <div className="border-l border-[#23232a] pl-[40px]">
+            <TrendColumnSkeleton title="플랫폼 제작 급상승" />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
-  const creationItems =
-    creationTrends.length > 0
-      ? creationTrends.map((item) => ({
-          label: item.keyword,
-          rank: item.rank,
-          subtitle: `${item.count.toLocaleString()} Created`,
-        }))
-      : fallbackCreationTrends;
+  const isEmpty = trendingKeywords.length === 0 && creationTrends.length === 0;
+
+  if (isEmpty) {
+    return (
+      <section className="pt-[33px]">
+        <h2 className="mb-[21px] text-[18px] font-semibold leading-none tracking-[-0.03em] text-white">
+          실시간 영상 제작 트렌드
+        </h2>
+        <TrendEmpty />
+      </section>
+    );
+  }
+
+  const trendingItems: TrendItem[] = trendingKeywords.map((item) => ({
+    label: item.keyword,
+    rank: item.rank,
+    subtitle: `${item.avg_views.toLocaleString()} Views`,
+  }));
+
+  const creationItems: TrendItem[] = creationTrends.map((item) => ({
+    label: item.keyword,
+    rank: item.rank,
+    subtitle: `${item.count.toLocaleString()} Created`,
+  }));
 
   return (
     <section className="pt-[33px]">

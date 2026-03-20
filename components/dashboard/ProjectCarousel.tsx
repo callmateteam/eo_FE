@@ -113,11 +113,7 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
               onEdit={() => {
                 void handleEdit(project.id);
               }}
-              progressLabel={
-                typeof project.progress === "number" && Number.isFinite(project.progress)
-                  ? `${project.progress}%`
-                  : null
-              }
+              statusColor={project.progress === 100 ? "gray" : "pink"}
               statusLabel={project.progress === 100 ? "진행 완료" : "진행 중"}
               title={project.title}
             />

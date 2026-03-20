@@ -5,10 +5,10 @@ import { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 
+import { Icon } from "@/components/ui/Icon";
 import { Navi } from "@/components/ui/Navi";
 import { cn } from "@/components/ui/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { commonAssets } from "@/lib/assets";
 
 import { SidebarProfilePanel } from "./SidebarProfilePanel";
 
@@ -60,12 +60,12 @@ export function AppSidebar() {
 
   return (
     <aside className="relative flex min-h-screen w-[79px] shrink-0 flex-col items-center bg-[#1e1e24] pb-[20px] pt-[13px]">
-      <div className="mb-[26px] flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl">
+      <div className="mb-[26px]">
         <Image
           alt="EO"
           height={40}
           priority
-          src={commonAssets.logoMark}
+          src="/Logo/Logo-40.svg"
           width={40}
         />
       </div>
@@ -83,6 +83,30 @@ export function AppSidebar() {
               >
                 <Navi aria-label={item.label} icon={item.icon} />
                 <span className="text-caption-md min-w-full text-center text-gray-50">
+                  {item.label}
+                </span>
+              </div>
+            );
+          }
+
+          if (item.icon === "plus") {
+            return (
+              <div
+                key={item.label}
+                className="flex flex-col items-center gap-2"
+              >
+                <button
+                  aria-label={item.label}
+                  className="flex size-14 cursor-pointer items-center justify-center rounded-full bg-[#28282f] text-primary-500 transition-colors hover:bg-[#323239]"
+                  onClick={() => {
+                    closeProfile();
+                    router.push(href);
+                  }}
+                  type="button"
+                >
+                  <Icon className="size-6" name="plus" />
+                </button>
+                <span className="text-caption-md text-center text-gray-50">
                   {item.label}
                 </span>
               </div>

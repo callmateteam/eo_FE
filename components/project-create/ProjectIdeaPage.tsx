@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { useCreateStoryboard } from "@/hooks/useStoryboard";
 import { useUpdateProject } from "@/hooks/useProjects";
 import { getProject } from "@/lib/api/projects";
+import { getStoryboard } from "@/lib/api/storyboards";
 import { ApiError } from "@/lib/api/client";
 import {
   getProjectDraft,
@@ -24,11 +25,9 @@ export function ProjectIdeaPage({ projectId }: ProjectIdeaPageProps) {
   const draft = getProjectDraft();
   const resolvedProjectId = projectId ?? draft?.projectId ?? "";
   const [projectTitle, setProjectTitle] = useState(draft?.title ?? "프로젝트명");
-  const [idea, setIdea] = useState(
-    draft?.idea ??
-      "Luna가 방에서 신비로운 빛나는 포탈을 발견한다. 호기심에 손을 뻗어 포탈을 만진다.\n포탈이 마법 에너지로 소용돌이친다."
-  );
+  const [idea, setIdea] = useState(draft?.idea ?? "");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPollingScenes, setIsPollingScenes] = useState(false);
   const updateProjectMutation = useUpdateProject();
   const storyboardMutation = useCreateStoryboard();
 
@@ -82,6 +81,23 @@ export function ProjectIdeaPage({ projectId }: ProjectIdeaPageProps) {
         storyboardId: storyboard.id,
         title: projectTitle,
       });
+
+      // Poll until scenes array is populated before navigating
+      setIsPollingScenes(true);
+      const maxAttempts = 60; // 2 minutes at 2s intervals
+      for (let i = 0; i < maxAttempts; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        try {
+          const data = await getStoryboard(storyboard.id);
+          if (data.scenes.length > 0) {
+            break;
+          }
+        } catch {
+          // keep polling
+        }
+      }
+      setIsPollingScenes(false);
+
       router.push(
         `/project/create/storyboard?projectId=${encodeURIComponent(
           resolvedProjectId
@@ -98,7 +114,7 @@ export function ProjectIdeaPage({ projectId }: ProjectIdeaPageProps) {
   }
 
   const isIdeaValid = idea.trim().length > 0;
-  const isPending = updateProjectMutation.isPending || storyboardMutation.isPending;
+  const isPending = updateProjectMutation.isPending || storyboardMutation.isPending || isPollingScenes;
 
   return (
     <ProjectCreateShell

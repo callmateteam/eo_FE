@@ -2,11 +2,12 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useProjectToast } from "@/components/providers/ProjectToastProvider";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { getProjectDraft } from "@/lib/project-draft";
 import { ApiError } from "@/lib/api/client";
 import { getProject } from "@/lib/api/projects";
@@ -57,6 +58,8 @@ export function ProjectStoryboardPage({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false);
   const [shouldPoll, setShouldPoll] = useState(true);
+  const [showStoryboardToast, setShowStoryboardToast] = useState(false);
+  const prevShouldPollRef = useRef(true);
 
   // Storyboard data with polling: refetch every 3s while any scene has a pending image
   const { data: storyboardData, isLoading: isLoadingStoryboard } = useStoryboard(
@@ -75,7 +78,14 @@ export function ProjectStoryboardPage({
     const hasPending = storyboardData.scenes.some((scene) => isPendingImageStatus(scene));
 
     // Keep polling if: storyboard is still generating, no scenes yet, or scenes have pending images
-    setShouldPoll(!hasScenes || hasPending || status === "GENERATING");
+    const nextShouldPoll = !hasScenes || hasPending || status === "GENERATING";
+    setShouldPoll(nextShouldPoll);
+
+    // Show toast when polling completes and storyboard has scenes
+    if (prevShouldPollRef.current && !nextShouldPoll && hasScenes) {
+      setShowStoryboardToast(true);
+    }
+    prevShouldPollRef.current = nextShouldPoll;
   }, [storyboardData]);
 
   const updateSceneMutation = useUpdateScene();
@@ -101,6 +111,13 @@ export function ProjectStoryboardPage({
         });
     }
   }, [resolvedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-dismiss storyboard completion toast after 5 seconds
+  useEffect(() => {
+    if (!showStoryboardToast) return;
+    const timer = setTimeout(() => setShowStoryboardToast(false), 5000);
+    return () => clearTimeout(timer);
+  }, [showStoryboardToast]);
 
   // Clear regeneratingSceneId when the scene image is no longer pending
   useEffect(() => {
@@ -322,11 +339,11 @@ export function ProjectStoryboardPage({
                     }}
                     type="button"
                   >
-                    <div className="relative h-[130px] overflow-hidden bg-white">
+                    <div className="relative h-[160px] overflow-hidden bg-[#18181d]">
                       {scene.image_url ? (
                         <img
                           alt={scene.title}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                           src={scene.image_url}
                         />
                       ) : (
@@ -377,13 +394,13 @@ export function ProjectStoryboardPage({
               {selectedScene?.title ?? "#1 씬 제목"}
             </p>
 
-            <div className="mt-[18px] h-[164px] overflow-hidden rounded-[18px] bg-white">
+            <div className="mt-[18px] h-[200px] overflow-hidden rounded-[18px] bg-[#18181d]">
               {selectedScene ? (
                 <div className="relative h-full w-full">
                   {selectedScene.image_url ? (
                     <img
                       alt={selectedScene.title}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                       src={selectedScene.image_url}
                     />
                   ) : (
@@ -493,6 +510,19 @@ export function ProjectStoryboardPage({
             router.push("/project/create");
           }}
         />
+      ) : null}
+
+      {showStoryboardToast ? (
+        <div className="pointer-events-none fixed bottom-[28px] left-[107px] z-[90]">
+          <div className="flex min-w-[398px] items-center gap-4 rounded-[20px] bg-[linear-gradient(90deg,#9747ff_0%,#d456ff_100%)] px-[22px] py-[14px] shadow-[0_12px_30px_rgba(151,71,255,0.3)]">
+            <div className="flex size-7 items-center justify-center rounded-full bg-[#1f1f24] text-white">
+              <Icon className="size-4" name="check" />
+            </div>
+            <span className="text-[14px] font-semibold text-white">
+              스토리보드 생성이 완료되었어요
+            </span>
+          </div>
+        </div>
       ) : null}
     </ProjectCreateShell>
   );

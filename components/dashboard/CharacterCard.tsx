@@ -14,6 +14,7 @@ type CharacterCardProps = {
   character: DashboardCharacter;
   index: number;
   onDelete?: () => void;
+  onEdit?: () => void;
 };
 
 function resolveBadgeLabel(type?: string) {
@@ -23,14 +24,14 @@ function resolveBadgeLabel(type?: string) {
 
   const normalizedType = type.toLowerCase();
 
-  if (normalizedType === "basic") {
+  if (normalizedType === "basic" || normalizedType === "preset") {
     return "Basic";
   }
 
   return "My";
 }
 
-export function CharacterCard({ character, index, onDelete }: CharacterCardProps) {
+export function CharacterCard({ character, index, onDelete, onEdit }: CharacterCardProps) {
   const badgeLabel = resolveBadgeLabel(character.type);
 
   return (
@@ -38,6 +39,7 @@ export function CharacterCard({ character, index, onDelete }: CharacterCardProps
       badgeLabel={badgeLabel}
       imageSrc={getProjectCardImageSrc(character.thumbnail_url || character.image_url || "", index)}
       onDelete={onDelete}
+      onEdit={onEdit}
       size="large"
       title={character.name}
     />

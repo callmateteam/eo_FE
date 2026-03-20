@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
-import { Badge } from "@/components/ui/Badge";
+import { Badge, BadgeColor } from "@/components/ui/Badge";
 import { Menu } from "@/components/ui/Menu";
 import { cn } from "@/components/ui/utils";
 
@@ -16,7 +16,7 @@ type ProjectCardProps = {
   menuAriaLabel?: string;
   onDelete?: () => void;
   onEdit?: () => void;
-  progressLabel?: string | null;
+  statusColor?: BadgeColor;
   statusLabel?: string | null;
   title: string;
 };
@@ -30,7 +30,7 @@ export function ProjectCard({
   menuAriaLabel = "프로젝트 메뉴 열기",
   onDelete,
   onEdit,
-  progressLabel,
+  statusColor = "blue",
   statusLabel,
   title,
 }: ProjectCardProps) {
@@ -125,8 +125,7 @@ export function ProjectCard({
         )}
 
         <div className="flex items-center gap-1">
-          {progressLabel ? <Badge color="gray" text={progressLabel} /> : null}
-          {statusLabel ? <Badge color="blue" text={statusLabel} /> : null}
+          {statusLabel ? <Badge color={statusColor} text={statusLabel} /> : null}
         </div>
       </div>
 

@@ -70,19 +70,19 @@ export function CharacterCarousel({ characters }: CharacterCarouselProps) {
         <div className="snap-start">
           <CharacterCreateCard />
         </div>
-        {characters.map((character, index) => (
-          <div key={character.id} className="snap-start">
-            <CharacterCard
-              character={character}
-              index={index}
-              onDelete={
-                character.type?.toLowerCase() !== "preset"
-                  ? () => deleteCustomCharacterMutation.mutate(character.id)
-                  : undefined
-              }
-            />
-          </div>
-        ))}
+        {characters.map((character, index) => {
+          const isCustom = character.type?.toLowerCase() !== "preset";
+          return (
+            <div key={character.id} className="snap-start">
+              <CharacterCard
+                character={character}
+                index={index}
+                onDelete={isCustom ? () => deleteCustomCharacterMutation.mutate(character.id) : undefined}
+                onEdit={isCustom ? () => undefined : undefined}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -94,13 +94,18 @@ export function ProjectToastProvider({ children }: PropsWithChildren) {
     const poll = async () => {
       try {
         const info = await getVideoInfo(tracking.storyboardId);
+        const status = info.status?.toUpperCase();
 
-        setCompletion({
-          projectId: tracking.projectId,
-          storyboardId: tracking.storyboardId,
-          title: info.title,
-        });
-        setTracking(null);
+        // Only mark complete when video is actually ready
+        if (status === "READY" || status === "COMPLETED" || status === "COMPLETE") {
+          setCompletion({
+            projectId: tracking.projectId,
+            storyboardId: tracking.storyboardId,
+            title: info.title,
+          });
+          setTracking(null);
+        }
+        // Other statuses (e.g. RENDERING) — keep polling
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) {
           // Still rendering, keep polling
@@ -124,6 +129,13 @@ export function ProjectToastProvider({ children }: PropsWithChildren) {
       }
     };
   }, [tracking]);
+
+  // Auto-dismiss completion toast after 6 seconds
+  useEffect(() => {
+    if (!completion) return;
+    const timer = setTimeout(() => setCompletion(null), 6000);
+    return () => clearTimeout(timer);
+  }, [completion]);
 
   const value = useMemo<ProjectToastContextValue>(
     () => ({

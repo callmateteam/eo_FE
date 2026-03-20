@@ -61,6 +61,7 @@ export function DashboardPage() {
         <TrendSection
           creationTrends={dashboard.creation_trends}
           trendingKeywords={dashboard.trending_keywords}
+          isLoading={dashboardQuery.isLoading}
         />
       </div>
     </div>

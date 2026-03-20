@@ -37,7 +37,7 @@ function CharacterSelectionCard({
 }) {
   return (
     <button
-      className={`relative overflow-hidden rounded-[20px] border bg-[#2a2a31] text-left transition-all ${
+      className={`relative cursor-pointer overflow-hidden rounded-[20px] border bg-[#2a2a31] text-left transition-all ${
         isSelected
           ? "border-[#b347ff] shadow-[0_0_0_1px_rgba(179,71,255,0.24)]"
           : "border-[#60606e]"
