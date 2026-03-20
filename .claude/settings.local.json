@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s https://d2aad86kvspq0l.cloudfront.net/api/)"
+    ]
+  }
+}

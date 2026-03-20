@@ -81,18 +81,21 @@ export function ProjectSavePage({
   });
 
   useEffect(() => {
-    if (videoInfo && videoInfo.status === "complete") {
+    if (!videoInfo) return;
+    const status = videoInfo.status?.toUpperCase();
+    if (status === "READY" || status === "COMPLETED" || status === "COMPLETE") {
       setIsVideoComplete(true);
     }
   }, [videoInfo]);
 
   const isLoading = Boolean(resolvedStoryboardId) && isVideoInfoLoading;
 
-  // Finalize video when info becomes available
+  // Finalize video only after render is complete
   useEffect(() => {
-    if (!videoInfo) return;
+    if (!isVideoComplete) return;
     if (hasFinalized.current) return;
     if (!resolvedStoryboardId) return;
+    if (!videoInfo?.video_url) return;
 
     hasFinalized.current = true;
     finalizeVideo.mutate(
@@ -107,7 +110,7 @@ export function ProjectSavePage({
         },
       },
     );
-  }, [videoInfo, resolvedStoryboardId]);
+  }, [isVideoComplete, resolvedStoryboardId, videoInfo?.video_url]);
 
   const videoDurationLabel = useMemo(() => {
     const duration = videoInfo?.duration ?? 0;

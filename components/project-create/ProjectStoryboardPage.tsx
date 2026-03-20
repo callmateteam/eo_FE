@@ -36,7 +36,7 @@ function isFailedImageStatus(scene: SceneItem) {
 function isPendingImageStatus(scene: SceneItem) {
   const imageStatus = scene.image_status?.toUpperCase();
   if (!imageStatus) return !scene.image_url;
-  return !isFailedImageStatus(scene) && imageStatus !== "COMPLETED" && !scene.image_url;
+  return !isFailedImageStatus(scene) && imageStatus !== "COMPLETED";
 }
 
 export function ProjectStoryboardPage({
@@ -137,7 +137,16 @@ export function ProjectStoryboardPage({
         sceneId: selectedScene.id,
         payload: { title: draft.title, content: draft.content },
       });
+
+      // 저장 후 자동으로 이미지 재생성 (STALE 상태가 되므로)
+      setRegeneratingSceneId(selectedScene.id);
+      setShouldPoll(true);
+      await regenerateSceneImageMutation.mutateAsync({
+        storyboardId: resolvedStoryboardId,
+        sceneId: selectedScene.id,
+      });
     } catch (error) {
+      setRegeneratingSceneId(null);
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
       } else {
@@ -245,7 +254,13 @@ export function ProjectStoryboardPage({
           <Button
             className="min-w-[112px]"
             size="tiny"
-            disabled={!resolvedStoryboardId || isLoadingStoryboard}
+            disabled={
+              !resolvedStoryboardId ||
+              isLoadingStoryboard ||
+              !hasScenes ||
+              hasPendingScenes ||
+              hasFailedScenes
+            }
             onClick={() => {
               setErrorMessage(null);
               void handleGenerateVideos();

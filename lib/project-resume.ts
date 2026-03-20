@@ -14,9 +14,8 @@ export async function resolveProjectResumePath(projectId: string) {
   }
 
   if (project.current_stage === 3) {
-    return `/project/create/storyboard?projectId=${encodeURIComponent(
-      projectId
-    )}&storyboardId=${encodeURIComponent(storyboardId)}`;
+    // Stage 3 = 영상 생성 중/완료 → 편집 페이지로 이동
+    return `/project/${projectId}/edit?storyboardId=${encodeURIComponent(storyboardId)}`;
   }
 
   const storyboard = await getStoryboard(storyboardId);
