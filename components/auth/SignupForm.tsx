@@ -173,6 +173,7 @@ export function SignupForm() {
       router.replace("/dashboard");
     } catch (error) {
       if (error instanceof ApiError) {
+        let hasFormError = false;
         for (const item of error.errors) {
           if (
             item.field === "name" ||
@@ -180,9 +181,12 @@ export function SignupForm() {
             item.field === "username"
           ) {
             setError(item.field, { message: item.message });
+          } else if (!item.field) {
+            setFormError(item.message);
+            hasFormError = true;
           }
         }
-        setFormError(error.message);
+        if (!hasFormError) setFormError(error.message);
         return;
       }
 

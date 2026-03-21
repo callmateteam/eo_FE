@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { ScriptInputField } from "@/components/ui/ScriptInputField";
 import { ProjectCreateShell } from "@/components/project-create/ProjectCreateShell";
 import { editorFontIconAssets } from "@/lib/assets";
 import { updateProjectDraft } from "@/lib/project-draft";
@@ -17,7 +16,6 @@ import { useStoryboard } from "@/hooks/useStoryboard";
 import {
   useVideoEdit,
   useSaveVideoEdit,
-  useUndoVideoEdit,
   useStartRender,
 } from "@/hooks/useVideoEdit";
 import { NetworkError } from "@/lib/api/client";
@@ -34,14 +32,6 @@ type ProjectEditPageProps = {
   storyboardId?: string;
 };
 
-const transitionOptions = [
-  { label: "없음", value: "none" },
-  { label: "페이드", value: "fade" },
-  { label: "디졸브", value: "dissolve" },
-  { label: "슬라이드 좌", value: "slide_left" },
-  { label: "슬라이드 업", value: "slide_up" },
-  { label: "와이프", value: "wipe" },
-] as const;
 
 const defaultSubtitleStyle: SubtitleStyle = {
   animation: "none",
@@ -134,7 +124,7 @@ function ScriptStyleButton({
 }) {
   return (
     <button
-      className={`flex h-10 w-10 items-center justify-center rounded-[10px] border transition-colors ${
+      className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-[10px] border transition-colors ${
         isActive
           ? "border-[#8b45ff] bg-[rgba(139,69,255,0.12)]"
           : "border-transparent bg-transparent"
@@ -161,7 +151,6 @@ export function ProjectEditPage({
   const editQuery = useVideoEdit(storyboardId ?? "");
 
   const saveVideoEdit = useSaveVideoEdit();
-  const undoVideoEdit = useUndoVideoEdit();
   const startRender = useStartRender();
   const updateProject = useUpdateProject();
 
@@ -185,7 +174,10 @@ export function ProjectEditPage({
   const [playerDuration, setPlayerDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [timelineZoom, setTimelineZoom] = useState(1);
+  const [applyToAll, setApplyToAll] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   // Stop polling storyboard once all scenes have video_url
   useEffect(() => {
@@ -222,18 +214,13 @@ export function ProjectEditPage({
       ? getSceneEditItem(editData, selectedScene) ?? createDefaultSceneEdit(selectedScene)
       : null;
 
-  async function handleUndo() {
-    if (!storyboardId) return;
-    try {
-      const result = await undoVideoEdit.mutateAsync(storyboardId);
-      setLocalEditData(result.edit_data);
-      setSaveMessage("되돌리기가 완료되었습니다.");
-    } catch (error) {
-      if (error instanceof NetworkError) {
-        setErrorMessage(error.message);
-      } else {
-        setErrorMessage("되돌리기에 실패했습니다.");
-      }
+  function handleFullscreen() {
+    const container = videoContainerRef.current;
+    if (!container) return;
+    if (!document.fullscreenElement) {
+      void container.requestFullscreen();
+    } else {
+      void document.exitFullscreen();
     }
   }
 
@@ -327,9 +314,15 @@ export function ProjectEditPage({
       nextSubtitles.push(nextSubtitle);
     }
 
-    setLocalEditData({ ...currentEditData, subtitles: nextSubtitles });
+    let finalSubtitles = nextSubtitles;
+    if (applyToAll) {
+      finalSubtitles = nextSubtitles.map((sub) => ({ ...sub, style: panelStyle }));
+    }
+
+    setLocalEditData({ ...currentEditData, subtitles: finalSubtitles });
     setSaveMessage(null);
     setEditingSubtitleIndex(null);
+    setApplyToAll(false);
     setIsScriptPanelOpen(false);
   };
 
@@ -454,7 +447,11 @@ export function ProjectEditPage({
 
       <div className="mx-auto w-full max-w-[1162px]">
         <div className="flex justify-center">
-          <div className="relative h-[404px] w-[226px] overflow-hidden rounded-[18px] bg-[#f5f2e9]">
+          <div
+            ref={videoContainerRef}
+            className="relative overflow-hidden rounded-[18px] bg-[#f5f2e9] transition-[width,height]"
+            style={{ height: `${Math.round(404 * timelineZoom)}px`, width: `${Math.round(226 * timelineZoom)}px` }}
+          >
             {selectedScene?.video_url ? (
               <video
                 key={selectedScene.id}
@@ -495,7 +492,7 @@ export function ProjectEditPage({
           <div className="flex items-center justify-between border-b border-[#222228] pb-[12px]">
             <div className="flex items-center gap-[14px] text-[#d7d7dc]">
               <button
-                className="text-white"
+                className="cursor-pointer text-white disabled:cursor-default"
                 disabled={!selectedScene?.video_url}
                 onClick={() => { void handlePlayToggle(); }}
                 type="button"
@@ -507,7 +504,7 @@ export function ProjectEditPage({
                 {formatTime(playerDuration || (selectedScene ? getSceneDuration(selectedScene) : 0))}
               </span>
               <button
-                className="rounded-full border border-[#2f2f35] px-[8px] py-[2px] text-[12px] font-medium text-[#a8a8b1]"
+                className="cursor-pointer rounded-full border border-[#2f2f35] px-[8px] py-[2px] text-[12px] font-medium text-[#a8a8b1]"
                 onClick={() => {
                   const nextRate = playbackRate === 1 ? 1.5 : playbackRate === 1.5 ? 2 : 1;
                   setPlaybackRate(nextRate);
@@ -520,7 +517,7 @@ export function ProjectEditPage({
                 {playbackRate}x
               </button>
               <button
-                className="text-[#a8a8b1]"
+                className="cursor-pointer text-[#a8a8b1]"
                 onClick={() => setIsMuted((current) => !current)}
                 type="button"
               >
@@ -528,27 +525,58 @@ export function ProjectEditPage({
               </button>
             </div>
 
-            <div className="flex items-center gap-[12px] text-[#d7d7dc]">
-              <button className="text-[#cfcfd5]" onClick={() => { setErrorMessage(null); void handleUndo(); }} type="button">
-                <Icon className="size-5" name="reset" />
+            <div className="flex items-center gap-[10px] text-[#d7d7dc]">
+              <button
+                className="cursor-pointer text-[#cfcfd5] disabled:cursor-default disabled:opacity-40"
+                disabled={scenes.findIndex((s) => s.id === selectedScene?.id) <= 0}
+                onClick={() => {
+                  const idx = scenes.findIndex((s) => s.id === selectedScene?.id);
+                  if (idx > 0) setSelectedSceneId(scenes[idx - 1].id);
+                }}
+                type="button"
+              >
+                <Icon className="size-5" name="left" />
               </button>
-              <button className="text-[#cfcfd5]" type="button">
-                <Icon className="size-5" name="redo" />
+              <button
+                className="cursor-pointer text-[#cfcfd5] disabled:cursor-default disabled:opacity-40"
+                disabled={scenes.findIndex((s) => s.id === selectedScene?.id) >= scenes.length - 1}
+                onClick={() => {
+                  const idx = scenes.findIndex((s) => s.id === selectedScene?.id);
+                  if (idx < scenes.length - 1) setSelectedSceneId(scenes[idx + 1].id);
+                }}
+                type="button"
+              >
+                <Icon className="size-5" name="right" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-[8px] text-[#d7d7dc]">
+              <button
+                className="cursor-pointer text-[#cfcfd5]"
+                onClick={() => setTimelineZoom((z) => Math.max(0.7, Math.round((z - 0.15) * 100) / 100))}
+                type="button"
+              >
+                <Icon className="size-4" name="line" />
               </button>
               <input
-                className="w-[140px] accent-[#d7d7dc]"
-                max={playerDuration || (selectedScene ? getSceneDuration(selectedScene) : 0)}
-                min={0}
-                onChange={(event) => {
-                  const nextTime = Number(event.target.value);
-                  const video = videoRef.current;
-                  setCurrentTime(nextTime);
-                  if (video) { video.currentTime = nextTime; }
-                }}
-                step="0.1"
+                className="w-[80px] accent-[#d7d7dc]"
+                max={1.5}
+                min={0.7}
+                onChange={(event) => setTimelineZoom(Number(event.target.value))}
+                step="0.05"
                 type="range"
-                value={Math.min(currentTime, playerDuration || (selectedScene ? getSceneDuration(selectedScene) : 0))}
+                value={timelineZoom}
               />
+              <button
+                className="cursor-pointer text-[#cfcfd5]"
+                onClick={() => setTimelineZoom((z) => Math.min(1.5, Math.round((z + 0.15) * 100) / 100))}
+                type="button"
+              >
+                <Icon className="size-4" name="plus" />
+              </button>
+              <button className="ml-[4px] cursor-pointer text-[#cfcfd5]" onClick={handleFullscreen} type="button">
+                <Icon className="size-5" name="fullscreen" />
+              </button>
             </div>
           </div>
 
@@ -561,107 +589,38 @@ export function ProjectEditPage({
               return (
                 <div
                   key={scene.id}
-                  className={`min-w-[112px] rounded-[16px] border bg-[#16161a] p-[8px] ${
+                  className={`flex h-[144px] w-[161px] shrink-0 flex-col overflow-hidden rounded-[16px] border bg-[#16161a] ${
                     isSelected
                       ? "border-[#8b45ff] shadow-[0_0_0_1px_rgba(139,69,255,0.16)]"
                       : "border-[#23232a]"
                   }`}
                 >
-                  <button className="w-full" onClick={() => setSelectedSceneId(scene.id)} type="button">
-                    <div className="h-[64px] overflow-hidden rounded-[10px] bg-white">
-                      <img
-                        alt={scene.title}
-                        className="h-full w-full object-cover"
-                        src={scene.image_url || "/assets/landing/cards/storyboard-cover-1.png"}
-                      />
-                    </div>
-                    <p className="pt-[8px] text-left text-[12px] font-semibold text-white">
-                      #{scene.scene_order}
+                  <button
+                    className="w-full flex-1 cursor-pointer overflow-hidden"
+                    onClick={() => setSelectedSceneId(scene.id)}
+                    type="button"
+                  >
+                    <img
+                      alt={scene.title}
+                      className="h-full w-full object-cover"
+                      src={scene.image_url || "/assets/landing/cards/storyboard-cover-1.png"}
+                    />
+                  </button>
+                  <button
+                    className="w-full shrink-0 cursor-pointer bg-[#1e1e23] px-[10px] py-[7px] text-left"
+                    onClick={() => { setSelectedSceneId(scene.id); openScriptPanel(); }}
+                    type="button"
+                  >
+                    <p className="text-[10px] font-semibold text-[#8f8f98]">#{scene.scene_order}</p>
+                    <p className="truncate text-[11px] font-medium text-[#d7d7dc]">
+                      {subtitle?.text || scene.narration || "스크립트"}
                     </p>
                   </button>
-                  <div className="mt-[6px] rounded-[12px] bg-[#2b2b31] px-[10px] py-[8px] text-left">
-                    <p className="truncate text-[12px] font-medium text-[#d7d7dc]">
-                      {subtitle?.text || "스크립트 없음"}
-                    </p>
-                    <p className="pt-[4px] text-[11px] text-[#8f8f98]">
-                      {subtitleEntries.length}개
-                    </p>
-                  </div>
                 </div>
               );
             })}
           </div>
 
-          {selectedScene ? (
-            <div className="mt-[18px] rounded-[18px] border border-[#25252b] bg-[#16161a] px-[16px] py-[14px]">
-              <div className="grid gap-3 border-b border-[#25252b] pb-[16px] md:grid-cols-2">
-                <label className="flex flex-col gap-2 text-[12px] font-medium text-[#b7b7bf]">
-                  재생 속도
-                  <select
-                    className="h-[44px] rounded-[10px] border border-[#303038] bg-[#121214] px-[12px] text-[14px] text-white outline-none"
-                    onChange={(event) => updateSelectedSceneEdit((current) => ({ ...current, speed: Number(event.target.value) }))}
-                    value={selectedSceneEdit?.speed ?? 1}
-                  >
-                    {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
-                      <option key={speed} value={speed}>{speed}x</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-2 text-[12px] font-medium text-[#b7b7bf]">
-                  전환 효과
-                  <select
-                    className="h-[44px] rounded-[10px] border border-[#303038] bg-[#121214] px-[12px] text-[14px] text-white outline-none"
-                    onChange={(event) => updateSelectedSceneEdit((current) => ({ ...current, transition: event.target.value }))}
-                    value={selectedSceneEdit?.transition ?? "none"}
-                  >
-                    {transitionOptions.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="pt-[16px] text-[16px] font-semibold text-white">
-                    #{selectedScene.scene_order} 씬 스크립트
-                  </p>
-                  <p className="pt-[4px] text-[12px] text-[#8f8f98]">
-                    씬별 자막을 추가하고 타이밍을 조정할 수 있습니다.
-                  </p>
-                </div>
-                <Button className="min-w-[120px]" size="tiny" onClick={() => openScriptPanel()}>
-                  스크립트 추가
-                </Button>
-              </div>
-
-              <div className="mt-[14px] flex flex-wrap gap-3">
-                {selectedSceneSubtitleEntries.length > 0 ? (
-                  selectedSceneSubtitleEntries.map((entry) => (
-                    <ScriptInputField
-                      key={`${entry.subtitle.scene_id}-${entry.index}-${entry.subtitle.start}`}
-                      className="h-auto min-h-[48px] min-w-[220px] max-w-[320px] rounded-[14px] bg-[#23232a] px-[14px] py-[10px] text-left"
-                      state="default"
-                      onClick={() => openScriptPanel(entry.index)}
-                    >
-                      <span className="flex flex-col">
-                        <span className="truncate text-[13px] font-medium text-white">
-                          {entry.subtitle.text}
-                        </span>
-                        <span className="pt-[4px] text-[11px] text-[#9f9faa]">
-                          {entry.subtitle.start.toFixed(1)}s - {entry.subtitle.end.toFixed(1)}s
-                        </span>
-                      </span>
-                    </ScriptInputField>
-                  ))
-                ) : (
-                  <div className="rounded-[14px] border border-dashed border-[#31313a] px-[14px] py-[16px] text-[13px] text-[#8f8f98]">
-                    아직 추가된 스크립트가 없습니다.
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : null}
         </div>
       </div>
 
@@ -670,7 +629,7 @@ export function ProjectEditPage({
           <div className="w-full max-w-[360px] rounded-[24px] bg-[#1f1f24] px-[20px] py-[18px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
             <div className="flex items-center justify-between">
               <h2 className="text-[18px] font-semibold text-white">스크립트</h2>
-              <button className="text-white" onClick={() => setIsScriptPanelOpen(false)} type="button">
+              <button className="cursor-pointer text-white" onClick={() => setIsScriptPanelOpen(false)} type="button">
                 <Icon className="size-5" name="close" />
               </button>
             </div>
@@ -743,7 +702,7 @@ export function ProjectEditPage({
             <div className="mt-[16px] border-t border-[#303038] pt-[16px]">
               <div className="flex items-center justify-between">
                 <p className="text-[18px] font-semibold text-white">스타일</p>
-                <button className="text-white" onClick={() => setPanelStyle(defaultSubtitleStyle)} type="button">
+                <button className="cursor-pointer text-white" onClick={() => setPanelStyle(defaultSubtitleStyle)} type="button">
                   <Icon className="size-5" name="reset" />
                 </button>
               </div>
@@ -751,16 +710,27 @@ export function ProjectEditPage({
               <div className="space-y-[14px] pt-[16px]">
                 <div className="flex items-center justify-between">
                   <span className="text-[14px] font-medium text-white">글 색상</span>
-                  <button
-                    className="size-6 rounded-full border border-[#3b3b43]"
-                    onClick={() => setPanelStyle((current) => ({ ...current, color: current.color === "#FFFFFF" ? "#8B45FF" : "#FFFFFF" }))}
-                    style={{ backgroundColor: panelStyle.color ?? "#FFFFFF" }}
-                    type="button"
-                  />
+                  <div className="flex items-center gap-[8px]">
+                    {(["#FFFFFF", "#8B45FF"] as const).map((color) => (
+                      <button
+                        key={color}
+                        className={`size-6 cursor-pointer rounded-full border-2 transition-all ${
+                          panelStyle.color === color ? "border-white scale-110" : "border-[#3b3b43]"
+                        }`}
+                        onClick={() => setPanelStyle((current) => ({ ...current, color }))}
+                        style={{ backgroundColor: color }}
+                        type="button"
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[14px] font-medium text-white">선</span>
+                  <div
+                    className="size-5 shrink-0 rounded-full border border-[#3b3b43]"
+                    style={{ backgroundColor: panelStyle.shadow?.color ?? "#FFFFFF" }}
+                  />
                   <input
                     className="flex-1 accent-[#8b45ff]"
                     max={5}
@@ -776,6 +746,10 @@ export function ProjectEditPage({
 
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[14px] font-medium text-white">배경</span>
+                  <div
+                    className="size-5 shrink-0 rounded-full border border-[#3b3b43]"
+                    style={{ backgroundColor: panelStyle.background?.color ?? "#6A57FF" }}
+                  />
                   <input
                     className="flex-1 accent-[#8b45ff]"
                     max={100}
@@ -791,7 +765,26 @@ export function ProjectEditPage({
               </div>
             </div>
 
-            <div className="flex gap-3 pt-[18px]">
+            <button
+              className={`mt-[16px] flex w-full cursor-pointer items-center gap-[10px] rounded-[12px] border px-[14px] py-[11px] transition-colors ${
+                applyToAll
+                  ? "border-[#8b45ff] bg-[rgba(139,69,255,0.08)]"
+                  : "border-[#303038] bg-transparent"
+              }`}
+              onClick={() => setApplyToAll((v) => !v)}
+              type="button"
+            >
+              <div
+                className={`flex size-5 shrink-0 items-center justify-center rounded-[5px] border-2 transition-colors ${
+                  applyToAll ? "border-[#8b45ff] bg-[#8b45ff]" : "border-[#555560]"
+                }`}
+              >
+                {applyToAll ? <Icon className="size-3 text-white" name="check" /> : null}
+              </div>
+              <span className="text-[14px] font-medium text-[#d7d7dc]">전체 적용</span>
+            </button>
+
+            <div className="flex gap-3 pt-[12px]">
               {editingSubtitleIndex !== null ? (
                 <Button className="min-w-0 flex-1" size="tiny" variant="outlined" onClick={() => handleDeleteSubtitle(editingSubtitleIndex)}>
                   삭제

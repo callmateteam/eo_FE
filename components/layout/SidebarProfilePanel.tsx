@@ -39,13 +39,20 @@ function SocialRow({
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-3">
-        <Image alt="" aria-hidden className="shrink-0" height={24} src={iconSrc} width={24} />
+        <Image
+          alt=""
+          aria-hidden
+          className={["shrink-0", connected ? "" : "grayscale opacity-50"].join(" ")}
+          height={24}
+          src={iconSrc}
+          width={24}
+        />
         <div className="min-w-0">
-          <p className="text-[14px] leading-[1.2] font-medium text-white">{label}</p>
+          <p className={["text-[14px] leading-[1.2] font-medium", connected ? "text-white" : "text-gray-300"].join(" ")}>{label}</p>
           <p
             className={[
               "mt-1 text-[12px] leading-none",
-              connected ? "text-[#c9c9d1]" : "text-[#6d6d76]",
+              connected ? "text-[#c9c9d1]" : "text-gray-300",
             ].join(" ")}
           >
             {accountText}
@@ -57,7 +64,7 @@ function SocialRow({
         className={[
           "inline-flex h-9 min-w-[58px] cursor-pointer items-center justify-center rounded-full px-4 text-[14px] leading-none font-medium disabled:cursor-not-allowed disabled:opacity-50",
           connected
-            ? "border border-[#ff4343] bg-transparent text-[#ff4343]"
+            ? "border border-error-500 bg-transparent text-error-500"
             : "bg-[#3b3b43] text-[#c7c7cf]",
         ].join(" ")}
         disabled={isPending}
@@ -150,16 +157,16 @@ export function SidebarProfilePanel({
       className="absolute bottom-0 left-[91px] z-20"
       ref={panelRef}
     >
-      <div className="w-[208px] rounded-[28px] border border-[#3b3b43] bg-[#1f1f24] px-5 pb-5 pt-6 shadow-[0_16px_48px_rgba(0,0,0,0.38)]">
+      <div className="w-[228px] rounded-[28px] border border-[#3b3b43] bg-[#1f1f24] p-5 shadow-[0_16px_48px_rgba(0,0,0,0.38)]">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_top,#6d5cff_0%,#4132a1_100%)] text-[20px] leading-none font-semibold text-white">
             {initials}
           </div>
           <div className="min-w-0 pt-[2px]">
-            <p className="truncate text-[14px] leading-none font-semibold text-white">
+            <p className="truncate text-heading-md font-semibold text-white">
               {user?.name ?? "이름"}
             </p>
-            <p className="mt-[9px] truncate text-[13px] leading-none text-[#8b8b94]">
+            <p className="mt-[9px] truncate text-body-md text-gray-300">
               {user?.username ?? "아이디"}
             </p>
           </div>
@@ -197,7 +204,7 @@ export function SidebarProfilePanel({
         <div className="mt-5 h-px bg-[#34343c]" />
 
         <button
-          className="mt-4 flex w-full cursor-pointer items-center gap-3 text-left text-[16px] leading-none font-medium text-white disabled:cursor-not-allowed"
+          className="mt-4 flex w-full cursor-pointer items-center gap-3 text-left text-body-md font-medium text-white disabled:cursor-not-allowed"
           disabled={logoutMutation.isPending}
           onClick={() => void handleLogout()}
           type="button"

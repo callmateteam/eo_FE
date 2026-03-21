@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import * as projectsApi from "@/lib/api/projects";
+import type { ConfirmEnrichedIdeaPayload } from "@/lib/api/types";
 import { queryKeys } from "@/hooks/query-keys";
 
 export function useProjects() {
@@ -59,6 +60,32 @@ export function useDeleteProject() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
+export function useEnrichIdea() {
+  return useMutation({
+    mutationFn: ({ projectId, idea }: { projectId: string; idea: string }) =>
+      projectsApi.enrichIdea(projectId, { idea }),
+  });
+}
+
+export function useConfirmEnrichedIdea() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      payload,
+    }: {
+      projectId: string;
+      payload: ConfirmEnrichedIdeaPayload;
+    }) => projectsApi.confirmEnrichedIdea(projectId, payload),
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.projects.detail(variables.projectId),
+      });
     },
   });
 }

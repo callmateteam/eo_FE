@@ -1,7 +1,10 @@
 import { apiFetch } from "./client";
 import type {
+  ConfirmEnrichedIdeaPayload,
+  ConfirmEnrichedIdeaResponse,
   CreateProjectPayload,
   CreateProjectResponse,
+  EnrichIdeaResponse,
   ProjectDetail,
   ProjectListResponse,
   UpdateProjectPayload,
@@ -25,4 +28,23 @@ export function updateProject(projectId: string, payload: UpdateProjectPayload) 
 
 export function deleteProject(projectId: string) {
   return apiFetch<null>("DELETE", `/api/projects/${projectId}`);
+}
+
+export function enrichIdea(projectId: string, payload: { idea: string }) {
+  return apiFetch<EnrichIdeaResponse>(
+    "POST",
+    `/api/projects/${projectId}/enrich-idea`,
+    payload,
+  );
+}
+
+export function confirmEnrichedIdea(
+  projectId: string,
+  payload: ConfirmEnrichedIdeaPayload,
+) {
+  return apiFetch<ConfirmEnrichedIdeaResponse>(
+    "POST",
+    `/api/projects/${projectId}/confirm-enriched-idea`,
+    payload,
+  );
 }

@@ -64,7 +64,7 @@ export function CharacterPage() {
 
   return (
     <div className="px-[34px] pb-[38px] pt-[24px]">
-      <h1 className="text-[18px] font-semibold leading-none tracking-[-0.03em] text-white">
+      <h1 className="text-heading-lg font-semibold tracking-[-0.03em] text-white">
         캐릭터
       </h1>
 
@@ -75,11 +75,11 @@ export function CharacterPage() {
           <ProjectCreateCard
             label="새 캐릭터 생성"
             onClick={() => router.push("/character/create")}
-            size="compact"
           />
           {visibleCharacters.map((character) => (
             <CharacterCard
               key={character.id}
+              size="large"
               badgeLabel={character.badgeLabel}
               imageSrc={character.imageSrc}
               onDelete={

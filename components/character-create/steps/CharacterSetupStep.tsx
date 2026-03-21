@@ -25,8 +25,27 @@ type CharacterSetupStepProps = {
   voice: string;
 };
 
-const styleOptions = [{ label: "만화", value: "ANIME" }] as const;
-const voiceOptions = [{ label: "기본 성우", value: "alloy" }] as const;
+const styleOptions = [
+  { label: "실사", value: "REALISTIC" },
+  { label: "애니메이션", value: "ANIME" },
+  { label: "3D 카툰", value: "CARTOON_3D" },
+  { label: "2D 일러스트", value: "ILLUSTRATION_2D" },
+  { label: "클레이", value: "CLAY" },
+  { label: "수채화", value: "WATERCOLOR" },
+] as const;
+
+const voiceOptions = [
+  { label: "alloy", value: "alloy" },
+  { label: "ash", value: "ash" },
+  { label: "ballad", value: "ballad" },
+  { label: "coral", value: "coral" },
+  { label: "echo", value: "echo" },
+  { label: "fable", value: "fable" },
+  { label: "onyx", value: "onyx" },
+  { label: "nova", value: "nova" },
+  { label: "sage", value: "sage" },
+  { label: "shimmer", value: "shimmer" },
+] as const;
 
 export function CharacterSetupStep({
   description,
@@ -82,14 +101,13 @@ export function CharacterSetupStep({
           />
 
           <ProjectCreateTextareaField
-            className="h-[86px]"
+            className="overflow-y-auto"
             label="설명"
             onChange={(event) => onDescriptionChange(event.target.value)}
             value={description}
           />
 
           <ProjectCreateSelectField
-            className="h-[46px]"
             label="캐릭터 스타일"
             onChange={(event) => onStyleChange(event.target.value)}
             options={[...styleOptions]}
@@ -97,7 +115,6 @@ export function CharacterSetupStep({
           />
 
           <ProjectCreateSelectField
-            className="h-[46px]"
             label="음성 선택"
             onChange={(event) => onVoiceChange(event.target.value)}
             options={[...voiceOptions]}

@@ -43,12 +43,16 @@ export function LoginForm() {
       router.replace("/dashboard");
     } catch (error) {
       if (error instanceof ApiError) {
+        let hasFormError = false;
         for (const item of error.errors) {
           if (item.field === "username" || item.field === "password") {
             setError(item.field, { message: item.message });
+          } else if (!item.field) {
+            setFormError(item.message);
+            hasFormError = true;
           }
         }
-        setFormError(error.message);
+        if (!hasFormError) setFormError(error.message);
         return;
       }
       setFormError("로그인 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");

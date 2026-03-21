@@ -22,7 +22,8 @@ export type IconName =
   | "up"
   | "view-off"
   | "view-on"
-  | "video";
+  | "video"
+  | "fullscreen";
 
 type IconProps = SVGProps<SVGSVGElement> & {
   name: IconName;
@@ -179,6 +180,15 @@ export function Icon(props: IconProps) {
           <path d="M10.6 5.2A10.75 10.75 0 0 1 12 5c6 0 9.5 7 9.5 7a17.7 17.7 0 0 1-3.02 3.67" />
           <path d="M14.9 14.9A4.2 4.2 0 0 1 12 16c-6 0-9.5-4-9.5-4a18.9 18.9 0 0 1 4.6-4.95" />
           <path d="M9.9 9.9A3 3 0 0 0 14.1 14.1" />
+        </svg>
+      );
+    case "fullscreen":
+      return (
+        <svg {...svgProps} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+          <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+          <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+          <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
         </svg>
       );
     default:

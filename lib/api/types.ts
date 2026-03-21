@@ -194,6 +194,38 @@ export type UpdateProjectPayload = {
 };
 
 // ---------------------------------------------------------------------------
+// Enrich Idea
+// ---------------------------------------------------------------------------
+
+export type EnrichedIdeaData = {
+  background: string;
+  mood: string;
+  main_character: string;
+  supporting_characters?: string[];
+  story: string;
+};
+
+export type EnrichIdeaResponse = {
+  enriched: EnrichedIdeaData;
+  message: string;
+};
+
+export type ConfirmEnrichedIdeaPayload = {
+  background?: string;
+  mood?: string;
+  main_character?: string;
+  supporting_characters?: string[];
+  story?: string;
+};
+
+export type ConfirmEnrichedIdeaResponse = {
+  id: string;
+  current_stage: number;
+  enriched_idea: EnrichedIdeaData;
+  message: string;
+};
+
+// ---------------------------------------------------------------------------
 // Storyboards
 // ---------------------------------------------------------------------------
 

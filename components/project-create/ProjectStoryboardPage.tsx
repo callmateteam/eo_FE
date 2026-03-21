@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useProjectToast } from "@/components/providers/ProjectToastProvider";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { getProjectDraft } from "@/lib/project-draft";
+import { getProjectDraft, updateProjectDraft } from "@/lib/project-draft";
 import { ApiError } from "@/lib/api/client";
 import { getProject } from "@/lib/api/projects";
 import { getVideoEdit } from "@/lib/api/video-edit";
@@ -172,26 +172,6 @@ export function ProjectStoryboardPage({
     }
   }
 
-  async function handleRegenerateImage() {
-    if (!selectedScene) return;
-
-    try {
-      setRegeneratingSceneId(selectedScene.id);
-      await regenerateSceneImageMutation.mutateAsync({
-        storyboardId: resolvedStoryboardId,
-        sceneId: selectedScene.id,
-      });
-      // Polling will pick up the new status automatically
-    } catch (error) {
-      setRegeneratingSceneId(null);
-      if (error instanceof ApiError) {
-        setErrorMessage(error.message);
-      } else {
-        setErrorMessage("이미지 재생성에 실패했습니다. 다시 시도해주세요.");
-      }
-    }
-  }
-
   async function handleGenerateVideos() {
     if (!resolvedStoryboardId) return;
 
@@ -202,7 +182,7 @@ export function ProjectStoryboardPage({
       if (resolvedProjectId) {
         await updateProjectMutation.mutateAsync({
           projectId: resolvedProjectId,
-          payload: { current_stage: 3 },
+          payload: { current_stage: 4 },
         });
       }
 
@@ -246,10 +226,20 @@ export function ProjectStoryboardPage({
     }
   }
 
+  async function handleTitleSave(newTitle: string) {
+    setProjectTitle(newTitle);
+    updateProjectDraft({ title: newTitle });
+    await updateProjectMutation.mutateAsync({
+      projectId: resolvedProjectId,
+      payload: { title: newTitle },
+    });
+  }
+
   return (
     <ProjectCreateShell
       currentStep={2}
       description="AI가 생성한 스토리보드를 검토하고 편집하세요"
+      onTitleSave={(t) => void handleTitleSave(t)}
       projectTitle={projectTitle}
       title="스토리보드 생성"
       actions={
@@ -304,7 +294,7 @@ export function ProjectStoryboardPage({
       ) : null}
 
       {hasScenes ? (
-        <div className="mx-auto grid w-full max-w-[1162px] grid-cols-1 gap-[18px] xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="mx-auto grid w-full max-w-[1162px] grid-cols-1 gap-[18px] xl:grid-cols-[minmax(0,1fr)_424px]">
           <section className="min-w-0">
             {hasPendingScenes || hasFailedScenes ? (
               <div className="mb-[14px] rounded-[14px] border border-[#3a3a43] bg-[#1b1b20] px-[16px] py-[12px]">
@@ -316,13 +306,13 @@ export function ProjectStoryboardPage({
               </div>
             ) : null}
             <div className="grid grid-cols-1 gap-[12px] pr-[10px] sm:grid-cols-2 xl:grid-cols-3">
-              {scenes.map((scene) => {
+              {scenes.map((scene, index) => {
                 const isSelected = scene.id === selectedScene?.id;
 
                 return (
                   <button
                     key={scene.id}
-                    className={`overflow-hidden rounded-[18px] border bg-[#202026] text-left transition-colors ${
+                    className={`flex h-[280px] flex-col overflow-hidden rounded-[18px] border bg-[#202026] text-left transition-colors ${
                       isSelected
                         ? "border-[#b347ff] shadow-[0_0_0_1px_rgba(179,71,255,0.22)]"
                         : "border-[#60606e]"
@@ -339,7 +329,7 @@ export function ProjectStoryboardPage({
                     }}
                     type="button"
                   >
-                    <div className="relative h-[160px] overflow-hidden bg-[#18181d]">
+                    <div className="relative flex-1 overflow-hidden bg-[#18181d]">
                       {scene.image_url ? (
                         <img
                           alt={scene.title}
@@ -375,11 +365,11 @@ export function ProjectStoryboardPage({
                         </div>
                       ) : null}
                     </div>
-                    <div className="bg-[linear-gradient(180deg,#313137_0%,#2a2a31_100%)] px-[12px] py-[14px]">
-                      <p className="truncate text-[18px] font-semibold text-white">
-                        {scene.title}
+                    <div className="h-[104px] overflow-hidden bg-[linear-gradient(180deg,#313137_0%,#2a2a31_100%)] px-[12px] py-[14px]">
+                      <p className="truncate text-body-lg font-semibold text-white">
+                        #{index + 1} {scene.title}
                       </p>
-                      <p className="mt-[8px] text-[13px] font-medium leading-[1.45] tracking-[-0.02em] text-[#8f8f98]">
+                      <p className="mt-[8px] line-clamp-2 text-body-md font-medium tracking-[-0.02em] text-[#8f8f98]">
                         {scene.content}
                       </p>
                     </div>
@@ -389,8 +379,8 @@ export function ProjectStoryboardPage({
             </div>
           </section>
 
-          <aside className="top-[124px] flex min-h-[490px] flex-col rounded-[24px] border border-[#60606e] bg-[#202026] px-[16px] py-[18px] xl:sticky">
-            <p className="text-[20px] font-semibold text-white">
+          <aside className="top-[124px] flex min-h-[644px] flex-col rounded-[24px] border border-[#60606e] bg-[#202026] p-[20px] xl:sticky">
+            <p className="text-heading-md font-semibold text-white">
               {selectedScene?.title ?? "#1 씬 제목"}
             </p>
 
@@ -436,25 +426,12 @@ export function ProjectStoryboardPage({
               ) : null}
             </div>
 
-            <Button
-              className="mt-[14px] w-full"
-              size="tiny"
-              variant="outlined"
-              disabled={!selectedScene}
-              onClick={() => {
-                setErrorMessage(null);
-                void handleRegenerateImage();
-              }}
-            >
-              이미지 재생성
-            </Button>
-
-            <div className="pt-[22px]">
-              <p className="text-[20px] font-semibold text-white">내용</p>
+            <div className="pt-[28px]">
+              <p className="text-heading-md font-semibold text-white">내용</p>
 
               <div className="mt-[12px]">
                 <input
-                  className="mb-[10px] h-[44px] w-full rounded-[12px] border border-[#2d2d34] bg-[#121214] px-[14px] text-[14px] font-medium text-white outline-none"
+                  className="mb-[10px] h-[44px] w-full rounded-[12px] border border-[#2d2d34] bg-[#121214] px-[14px] text-body-lg text-white outline-none"
                   onChange={(event) =>
                     setSceneDrafts((current) => ({
                       ...current,
@@ -468,7 +445,7 @@ export function ProjectStoryboardPage({
                 />
                 <div className="rounded-[12px] border border-[#2d2d34] bg-[#121214] px-[16px] py-[14px]">
                   <textarea
-                    className="h-[122px] w-full resize-none border-0 bg-transparent text-[15px] leading-[1.6] text-[#f1f1f4] outline-none placeholder:text-[#6d6d76]"
+                    className="h-[122px] w-full resize-none border-0 bg-transparent text-body-lg leading-[1.6] text-[#f1f1f4] outline-none placeholder:text-[#6d6d76]"
                     onChange={(event) =>
                       setSceneDrafts((current) => ({
                         ...current,

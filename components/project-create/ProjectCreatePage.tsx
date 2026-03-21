@@ -165,18 +165,13 @@ export function ProjectCreatePage() {
       projectTitle="프로젝트명"
       title="캐릭터 설정"
       actions={
-        <>
-          <Button size="tiny" variant="outlined" onClick={() => router.back()}>
-            이전
-          </Button>
-          <Button
-            size="tiny"
-            disabled={!selectedCharacter || createProjectMutation.isPending}
-            onClick={() => void handleCreateProject()}
-          >
-            캐릭터 선택
-          </Button>
-        </>
+        <Button
+          size="tiny"
+          disabled={!selectedCharacter || createProjectMutation.isPending}
+          onClick={() => void handleCreateProject()}
+        >
+          캐릭터 선택
+        </Button>
       }
     >
       {createError ? (
