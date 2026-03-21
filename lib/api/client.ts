@@ -129,9 +129,19 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     const body = data as Record<string, unknown> | undefined;
+
+    // Support nested detail object: { detail: { detail: "...", errors: [...] } }
+    const nestedDetail =
+      body?.detail !== null &&
+      typeof body?.detail === "object" &&
+      !Array.isArray(body?.detail)
+        ? (body.detail as Record<string, unknown>)
+        : null;
+
     const message =
-      (body?.message as string) ??
-      (body?.detail as string) ??
+      (typeof body?.message === "string" ? body.message : null) ??
+      (typeof body?.detail === "string" ? body.detail : null) ??
+      (typeof nestedDetail?.detail === "string" ? nestedDetail.detail : null) ??
       `요청에 실패했습니다. (${response.status})`;
 
     const fieldErrors: { field?: string; message: string }[] = [];
@@ -141,6 +151,13 @@ export async function apiFetch<T>(
       for (const item of body.detail as { loc?: string[]; msg?: string }[]) {
         const field = item.loc?.at(-1);
         fieldErrors.push({ field, message: item.msg ?? "" });
+      }
+    }
+
+    // Handle nested { detail: { errors: [...] } }
+    if (Array.isArray(nestedDetail?.errors)) {
+      for (const item of nestedDetail.errors as { field?: string; message: string }[]) {
+        fieldErrors.push(item);
       }
     }
 

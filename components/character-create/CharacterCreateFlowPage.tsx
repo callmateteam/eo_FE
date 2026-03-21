@@ -20,8 +20,6 @@ import { clearProjectDraft, updateProjectDraft } from "@/lib/project-draft";
 
 type FlowScreen = "setup" | "preview";
 
-const styleValue: CharacterStyle = "ANIME";
-const voiceValue: VoiceId = "alloy";
 const initialDescription =
   "홍길동은 날렵한 체형과 또렷한 눈매를 가진 인물로, 민첩하고 자신감 있는 인상을 준다. 단정한 한복 차림에 활동하기 편한 복식을 입고 있으며, 전체적으로 깔끔하고 기민한 분위기가 느껴진다.";
 
@@ -42,6 +40,8 @@ export function CharacterCreateFlowPage() {
   const [createdCharacterId, setCreatedCharacterId] = useState("");
   const [createdCharacter, setCreatedCharacter] = useState<CustomCharacterItem | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [styleValue, setStyleValue] = useState<CharacterStyle>("ANIME");
+  const [voiceValue, setVoiceValue] = useState<VoiceId>("alloy");
 
   const createCharacterMutation = useCreateCustomCharacter();
   const createProjectMutation = useCreateProject();
@@ -218,8 +218,8 @@ export function CharacterCreateFlowPage() {
             setCreatedCharacter(null);
             setCreatedCharacterId("");
           }}
-          onStyleChange={() => undefined}
-          onVoiceChange={() => undefined}
+          onStyleChange={(value) => setStyleValue(value as CharacterStyle)}
+          onVoiceChange={(value) => setVoiceValue(value as VoiceId)}
           previewImageSrc={
             createdCharacter?.image_url_1 ||
             createdCharacter?.image_url_2 ||

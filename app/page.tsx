@@ -1,31 +1,13 @@
-import Image from "next/image";
-import Link from "next/link";
-
 import { LandingCTAButton } from "@/components/landing/LandingCTAButton";
 import { LandingFeatureShowcase } from "@/components/landing/LandingFeatureShowcase";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
 
 export default function Home() {
   return (
     <main className="bg-gray-900 text-gray-50">
-      <header className="relative z-30 h-20 bg-[rgba(44,44,49,0.88)] backdrop-blur-[10px]">
-        <div className="mx-auto flex h-full w-full max-w-[1440px] items-center justify-between px-10 md:px-20">
-          <Image
-            alt="Eastaid Video 로고"
-            src="/Logo/Logo-120_40.svg"
-            width={120}
-            height={40}
-            priority
-          />
-          <Link
-            className="inline-flex h-12 items-center justify-center rounded-full border border-primary-500 bg-gray-800 px-4 text-label-md text-gray-50 shadow-[0_1px_8px_4px_rgba(186,78,255,0.13)]"
-            href="/login"
-          >
-            회원가입 / 로그인
-          </Link>
-        </div>
-      </header>
+      <SiteHeader />
 
       <section className="relative isolate overflow-hidden bg-gray-900">
         <div className="absolute inset-x-0 top-0 h-[802px] bg-[radial-gradient(circle_at_24%_30%,rgba(186,78,255,0.24)_0%,rgba(186,78,255,0.11)_22%,rgba(18,18,20,0)_52%),radial-gradient(circle_at_59%_42%,rgba(105,84,249,0.18)_0%,rgba(105,84,249,0.1)_28%,rgba(18,18,20,0)_58%),linear-gradient(180deg,rgba(63,44,86,0.28)_0%,rgba(18,18,20,0.06)_58%,rgba(18,18,20,0)_100%)]" />

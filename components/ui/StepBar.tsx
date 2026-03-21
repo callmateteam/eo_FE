@@ -1,6 +1,6 @@
 import { cn } from "@/components/ui/utils";
 
-type StepBarState = "default" | "now";
+type StepBarState = "default" | "now" | "done";
 
 type StepBarItem = {
   label: string;
@@ -17,6 +17,7 @@ export function StepBar({ className, steps }: Props) {
     <div className={cn("flex w-full items-start gap-2", className)}>
       {steps.map((step, index) => {
         const current = step.state === "now";
+        const done = step.state === "done";
 
         return (
           <div className="flex flex-1 items-center gap-2" key={`${step.label}-${index}`}>
@@ -24,7 +25,7 @@ export function StepBar({ className, steps }: Props) {
               <span
                 className={cn(
                   "text-caption-md text-center",
-                  current ? "text-primary-500" : "text-gray-500"
+                  current ? "text-primary-500" : done ? "text-primary-700" : "text-gray-500"
                 )}
               >
                 {step.label}
@@ -32,7 +33,7 @@ export function StepBar({ className, steps }: Props) {
               <span
                 className={cn(
                   "h-3 rounded-full",
-                  current ? "bg-primary-500" : "bg-gray-500"
+                  current ? "bg-primary-500" : done ? "bg-primary-700" : "bg-gray-500"
                 )}
               />
             </div>

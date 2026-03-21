@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Icon } from "@/components/ui/Icon";
 
 type DashboardCreationTrend = {
@@ -10,6 +12,7 @@ type DashboardTrendKeyword = {
   keyword: string;
   rank: number;
   avg_views: number;
+  url?: string;
 };
 
 type TrendSectionProps = {
@@ -22,6 +25,7 @@ type TrendItem = {
   label: string;
   rank: number;
   subtitle?: string | number | null;
+  url?: string;
 };
 
 function getIndicator(rank: number) {
@@ -49,7 +53,7 @@ function TrendColumn({
 }) {
   return (
     <section className="flex min-w-0 flex-1 flex-col">
-      <h3 className="mb-[18px] text-[14px] font-semibold leading-none tracking-[-0.02em] text-white">
+      <h3 className="mb-[18px] text-heading-md font-semibold tracking-[-0.02em] text-white">
         {title}
       </h3>
       <ol className="space-y-[2px]">
@@ -61,14 +65,25 @@ function TrendColumn({
               key={`${title}-${item.rank}`}
               className="grid grid-cols-[24px_minmax(0,1fr)_28px] items-center gap-[18px] border-b border-[#23232a] py-[13px]"
             >
-              <span className="text-[15px] font-semibold leading-none tracking-[-0.03em] text-white">
+              <span className="text-heading-md font-semibold tracking-[-0.03em] text-white">
                 {item.rank}
               </span>
               <div className="min-w-0">
-                <p className="truncate text-[12px] font-semibold leading-none tracking-[-0.02em] text-white">
-                  {item.label}
-                </p>
-                <p className="mt-[7px] min-h-[10px] text-[10px] font-medium leading-none text-[#8d8d96]">
+                {item.url ? (
+                  <Link
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="truncate text-body-lg font-semibold tracking-[-0.02em] text-white hover:text-primary-400 transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <p className="truncate text-body-lg font-semibold tracking-[-0.02em] text-white">
+                    {item.label}
+                  </p>
+                )}
+                <p className="mt-[7px] min-h-[10px] text-[12px] font-medium leading-none text-[#8d8d96]">
                   {item.subtitle === null ||
                   item.subtitle === undefined ||
                   item.subtitle === ""
@@ -98,7 +113,7 @@ function TrendColumn({
 function TrendColumnSkeleton({ title }: { title: string }) {
   return (
     <section className="flex min-w-0 flex-1 flex-col">
-      <h3 className="mb-[18px] text-[14px] font-semibold leading-none tracking-[-0.02em] text-white">
+      <h3 className="mb-[18px] text-heading-md font-semibold tracking-[-0.02em] text-white">
         {title}
       </h3>
       <ol className="space-y-[2px]">
@@ -136,7 +151,7 @@ export function TrendSection({
   if (isLoading) {
     return (
       <section className="pt-[33px]">
-        <h2 className="mb-[21px] text-[18px] font-semibold leading-none tracking-[-0.03em] text-white">
+        <h2 className="mb-[21px] text-heading-lg font-semibold tracking-[-0.03em] text-white">
           실시간 영상 제작 트렌드
         </h2>
         <div className="grid grid-cols-2 gap-[40px]">
@@ -156,7 +171,7 @@ export function TrendSection({
   if (isEmpty) {
     return (
       <section className="pt-[33px]">
-        <h2 className="mb-[21px] text-[18px] font-semibold leading-none tracking-[-0.03em] text-white">
+        <h2 className="mb-[21px] text-heading-lg font-semibold tracking-[-0.03em] text-white">
           실시간 영상 제작 트렌드
         </h2>
         <TrendEmpty />
@@ -168,6 +183,7 @@ export function TrendSection({
     label: item.keyword,
     rank: item.rank,
     subtitle: `${item.avg_views.toLocaleString()} Views`,
+    url: item.url,
   }));
 
   const creationItems: TrendItem[] = creationTrends.map((item) => ({
@@ -178,7 +194,7 @@ export function TrendSection({
 
   return (
     <section className="pt-[33px]">
-      <h2 className="mb-[21px] text-[18px] font-semibold leading-none tracking-[-0.03em] text-white">
+      <h2 className="mb-[21px] text-heading-lg font-semibold tracking-[-0.03em] text-white">
         실시간 영상 제작 트렌드
       </h2>
       <div className="grid grid-cols-2 gap-[40px]">

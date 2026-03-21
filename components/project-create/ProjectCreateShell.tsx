@@ -11,6 +11,7 @@ type ProjectCreateShellProps = {
   className?: string;
   currentStep?: number;
   description?: string;
+  onTitleSave?: (title: string) => void;
   projectTitle?: string;
   title?: string;
 };
@@ -21,12 +22,13 @@ export function ProjectCreateShell({
   className,
   currentStep = 0,
   description = "캐릭터의 이미지나 동영상을 업로드해주세요",
+  onTitleSave,
   projectTitle = "프로젝트명",
   title = "새 캐릭터 생성",
 }: ProjectCreateShellProps) {
   return (
     <div className={cn("flex min-h-full flex-col bg-[#111115]", className)}>
-      <ProjectCreateHeader projectTitle={projectTitle} />
+      <ProjectCreateHeader onTitleSave={onTitleSave} projectTitle={projectTitle} />
       <main className="flex-1 px-[48px] pt-[28px] pb-[37px]">
         <ProjectCreateStepBar currentStep={currentStep} />
 

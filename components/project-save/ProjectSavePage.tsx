@@ -8,6 +8,9 @@ import { getDownloadUrl } from "@/lib/api/video-edit";
 import { getStoryboard } from "@/lib/api/storyboards";
 import { useProject, useUpdateProject } from "@/hooks/useProjects";
 import { useVideoInfo, useFinalizeVideo } from "@/hooks/useVideoEdit";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useYouTubeConnect, useYouTubeUpload } from "@/hooks/useYouTube";
+import { openYouTubeOAuthPopup } from "@/lib/youtubeOAuth";
 
 import { Button } from "@/components/ui/Button";
 import { ProjectCreateShell } from "@/components/project-create/ProjectCreateShell";
@@ -33,8 +36,11 @@ export function ProjectSavePage({
   const hasFinalized = useRef(false);
 
   const { data: project } = useProject(projectId);
+  const { data: user } = useCurrentUser();
   const updateProject = useUpdateProject();
   const finalizeVideo = useFinalizeVideo();
+  const youtubeConnect = useYouTubeConnect();
+  const youtubeUpload = useYouTubeUpload(projectId);
 
   // Populate title and storyboard_id from project data
   useEffect(() => {
@@ -198,8 +204,22 @@ export function ProjectSavePage({
                 {(["youtube", "tiktok", "instagram"] as const).map((target) => (
                   <button
                     key={target}
-                    className="flex size-[38px] items-center justify-center rounded-full border border-[#3a3a43] bg-[#1f1f24]"
+                    className="flex size-[38px] items-center justify-center rounded-full border border-[#3a3a43] bg-[#1f1f24] cursor-pointer"
                     onClick={() => {
+                      if (target === "youtube" && !user?.social.youtube) {
+                        openYouTubeOAuthPopup((code, redirectUri) => {
+                          youtubeConnect.mutate(
+                            { code, redirect_uri: redirectUri },
+                            {
+                              onSuccess: () => {
+                                setSocialTarget("youtube");
+                                setIsSocialModalOpen(true);
+                              },
+                            },
+                          );
+                        });
+                        return;
+                      }
                       setSocialTarget(target);
                       setIsSocialModalOpen(true);
                     }}
@@ -241,23 +261,52 @@ export function ProjectSavePage({
                   : "인스타그램에 업로드하시겠어요?"}
             </p>
 
-            <div className="flex items-center justify-center gap-3 pt-[28px]">
-              <Button
-                className="min-w-[148px]"
-                size="tiny"
-                variant="outlined"
-                onClick={() => setIsSocialModalOpen(false)}
-              >
-                취소
-              </Button>
-              <Button
-                className="min-w-[148px]"
-                size="tiny"
-                onClick={() => setIsSocialModalOpen(false)}
-              >
-                업로드
-              </Button>
-            </div>
+            {youtubeUpload.data ? (
+              <div className="pt-5 text-center">
+                <p className="text-[14px] text-[#c9c9d1]">업로드 완료!</p>
+                <a
+                  className="mt-2 block text-[14px] text-[#6d5cff] underline"
+                  href={youtubeUpload.data.youtube_url}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  YouTube에서 보기
+                </a>
+                <Button
+                  className="mt-4 min-w-37"
+                  onClick={() => {
+                    setIsSocialModalOpen(false);
+                    youtubeUpload.reset();
+                  }}
+                  size="tiny"
+                  variant="outlined"
+                >
+                  닫기
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-3 pt-7">
+                <Button
+                  className="min-w-37"
+                  onClick={() => setIsSocialModalOpen(false)}
+                  size="tiny"
+                  variant="outlined"
+                >
+                  취소
+                </Button>
+                <Button
+                  className="min-w-37"
+                  disabled={youtubeUpload.isPending || socialTarget !== "youtube"}
+                  onClick={() => {
+                    if (socialTarget !== "youtube") return;
+                    youtubeUpload.mutate({ title: projectTitle });
+                  }}
+                  size="tiny"
+                >
+                  {youtubeUpload.isPending ? "업로드 중..." : "업로드"}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       ) : null}

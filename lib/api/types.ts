@@ -194,6 +194,38 @@ export type UpdateProjectPayload = {
 };
 
 // ---------------------------------------------------------------------------
+// Enrich Idea
+// ---------------------------------------------------------------------------
+
+export type EnrichedIdeaData = {
+  background: string;
+  mood: string;
+  main_character: string;
+  supporting_characters?: string[];
+  story: string;
+};
+
+export type EnrichIdeaResponse = {
+  enriched: EnrichedIdeaData;
+  message: string;
+};
+
+export type ConfirmEnrichedIdeaPayload = {
+  background?: string;
+  mood?: string;
+  main_character?: string;
+  supporting_characters?: string[];
+  story?: string;
+};
+
+export type ConfirmEnrichedIdeaResponse = {
+  id: string;
+  current_stage: number;
+  enriched_idea: EnrichedIdeaData;
+  message: string;
+};
+
+// ---------------------------------------------------------------------------
 // Storyboards
 // ---------------------------------------------------------------------------
 
@@ -419,8 +451,24 @@ export type YouTubeUploadPayload = {
   privacy_status?: string;
 };
 
+export type YouTubeConnectResponse = {
+  channel_title: string;
+  message: string;
+};
+
+export type YouTubeDisconnectResponse = {
+  message: string;
+};
+
 export type YouTubeUploadResponse = {
   youtube_video_id: string;
   youtube_url: string;
   message: string;
+};
+
+export type YouTubeStatusResponse = {
+  status: string;
+  youtube_video_id?: string | null;
+  youtube_url?: string | null;
+  error?: string | null;
 };

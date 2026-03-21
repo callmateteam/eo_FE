@@ -14,4 +14,7 @@ export const queryKeys = {
   videoEdit: (id: string) => ["video-edit", id] as const,
   videoInfo: (id: string) => ["video-info", id] as const,
   dashboard: ["dashboard"] as const,
+  youtube: {
+    uploadStatus: (id: string) => ["youtube-upload-status", id] as const,
+  },
 };
