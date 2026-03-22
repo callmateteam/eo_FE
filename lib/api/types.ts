@@ -284,6 +284,10 @@ export type SubtitleStyle = {
   font?: string;
   font_size?: number;
   color?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  align?: "left" | "center" | "right";
   shadow?: {
     enabled: boolean;
     color: string;
@@ -294,6 +298,8 @@ export type SubtitleStyle = {
     color: string;
     opacity: number;
   };
+  outline_color?: string;
+  outline_size?: number;
   position?: string;
   position_y?: number | null;
   animation?: string;
