@@ -163,7 +163,7 @@ export function ProjectToastProvider({ children }: PropsWithChildren) {
         <div className="pointer-events-none fixed bottom-[28px] left-[107px] z-[80]">
           <div className="flex min-w-[300px] items-center gap-3 rounded-[18px] border border-[#2f2f36] bg-[#1f1f24] px-[18px] py-[16px] shadow-[0_14px_40px_rgba(0,0,0,0.28)]">
             <div className="flex size-7 items-center justify-center rounded-full border border-[#2e2e34] bg-[#232328] text-primary-500">
-              <SpinnerDots className="scale-[0.42]" />
+              <SpinnerDots size="sm" />
             </div>
             <div className="flex flex-col">
               <span className="text-[14px] font-semibold leading-none text-white">

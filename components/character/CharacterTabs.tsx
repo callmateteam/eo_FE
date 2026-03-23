@@ -20,7 +20,7 @@ export function CharacterTabs({ onChange, value }: CharacterTabsProps) {
         <button
           key={tab.value}
           className={[
-            "cursor-pointer rounded-full px-[14px] py-[8px] text-[12px] font-semibold leading-none tracking-[-0.02em] transition-colors",
+            "text-heading-md cursor-pointer rounded-full px-[13px] py-[7px] transition-colors",
             value === tab.value
               ? "bg-[#3c3c45] text-white"
               : "bg-transparent text-[#8f8f98]",

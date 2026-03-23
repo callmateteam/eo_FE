@@ -67,7 +67,7 @@ function SocialRow({
             ? "border border-error-500 bg-transparent text-error-500"
             : "bg-[#3b3b43] text-[#c7c7cf]",
         ].join(" ")}
-        disabled={isPending}
+        disabled={isPending || (!onConnect && !onDisconnect)}
         onClick={connected ? onDisconnect : onConnect}
         type="button"
       >

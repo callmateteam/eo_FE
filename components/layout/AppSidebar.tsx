@@ -97,7 +97,7 @@ export function AppSidebar() {
               >
                 <button
                   aria-label={item.label}
-                  className="flex size-14 cursor-pointer items-center justify-center rounded-full bg-[#28282f] text-primary-500 transition-colors hover:bg-[#323239]"
+                  className="flex size-10 cursor-pointer items-center justify-center rounded-xl bg-[#28282f] text-primary-500 transition-colors hover:bg-[#323239]"
                   onClick={() => {
                     closeProfile();
                     router.push(href);
