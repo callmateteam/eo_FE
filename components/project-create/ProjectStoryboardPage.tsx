@@ -26,6 +26,7 @@ import { VideoGenerateProgressModal } from "@/components/character-create/modals
 
 type ProjectStoryboardPageProps = {
   projectId?: string;
+  resumeGeneration?: boolean;
   storyboardId?: string;
 };
 
@@ -54,6 +55,7 @@ function isPendingVideoStatus(scene: SceneItem) {
 
 export function ProjectStoryboardPage({
   projectId,
+  resumeGeneration = false,
   storyboardId,
 }: ProjectStoryboardPageProps) {
   const router = useRouter();
@@ -75,6 +77,7 @@ export function ProjectStoryboardPage({
   const [showVideoModal, setShowVideoModal] = useState(false);
   const prevShouldPollRef = useRef(true);
   const hasNavigatedRef = useRef(false);
+  const hasResumedRef = useRef(false);
 
   // Storyboard data with polling: refetch every 3s while any scene has a pending image or video
   const { data: storyboardData, isLoading: isLoadingStoryboard } = useStoryboard(
@@ -101,6 +104,21 @@ export function ProjectStoryboardPage({
     }
     prevShouldPollRef.current = nextShouldPoll;
   }, [storyboardData, isVideoGenerating]);
+
+  // Resume video generation tracking when returning mid-generation
+  useEffect(() => {
+    if (!resumeGeneration || hasResumedRef.current) return;
+    if (!storyboardData || scenes.length === 0) return;
+
+    hasResumedRef.current = true;
+    hasNavigatedRef.current = false;
+    setShouldPoll(true);
+    setIsVideoGenerating(true);
+    startVideoGenerationTracking({
+      projectId: resolvedProjectId,
+      storyboardId: resolvedStoryboardId,
+    });
+  }, [storyboardData, resumeGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-navigate to edit page when all scene videos are ready
   useEffect(() => {
