@@ -1,8 +1,8 @@
 import { LandingCTAButton } from "@/components/landing/LandingCTAButton";
 import { LandingFeatureShowcase } from "@/components/landing/LandingFeatureShowcase";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { LandingHeroVideo } from "@/components/landing/LandingHeroVideo";
 import { SiteHeader } from "@/components/layout/SiteHeader";
-import { Icon } from "@/components/ui/Icon";
 
 export default function Home() {
   return (
@@ -27,13 +27,7 @@ export default function Home() {
             <LandingCTAButton className="w-fit" />
           </div>
 
-          <div className="relative mx-auto h-[602px] w-full max-w-[397px] rounded-[32px] border border-gray-700 bg-gray-800 shadow-[0_1px_36px_8px_rgba(186,78,255,0.08)]">
-            <div className="absolute inset-4 rounded-[24px] bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(255,255,255,0)_100%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_24%,rgba(186,78,255,0.12),transparent_38%)]" />
-            <div className="absolute left-1/2 top-1/2 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[rgba(18,18,20,0.7)]">
-              <Icon className="size-9 text-gray-50" name="play-line" />
-            </div>
-          </div>
+          <LandingHeroVideo />
         </div>
       </section>
 

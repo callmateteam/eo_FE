@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/Button";
 import { useCreateStoryboard } from "@/hooks/useStoryboard";
 import { useUpdateProject, useEnrichIdea, useConfirmEnrichedIdea } from "@/hooks/useProjects";
 import { getProject } from "@/lib/api/projects";
-import { getStoryboard } from "@/lib/api/storyboards";
 import { ApiError } from "@/lib/api/client";
 import type { EnrichedIdeaData } from "@/lib/api/types";
 import {
   getProjectDraft,
   updateProjectDraft,
 } from "@/lib/project-draft";
+import { useProjectToast } from "@/components/providers/ProjectToastProvider";
 
 import { ProjectCreateShell } from "@/components/project-create/ProjectCreateShell";
 
@@ -25,6 +25,7 @@ type ProjectIdeaPageProps = {
 
 export function ProjectIdeaPage({ projectId }: ProjectIdeaPageProps) {
   const router = useRouter();
+  const { startStoryboardTracking } = useProjectToast();
   const draft = getProjectDraft();
   const resolvedProjectId = projectId ?? draft?.projectId ?? "";
   const [projectTitle, setProjectTitle] = useState(draft?.title ?? "프로젝트명");
@@ -33,7 +34,6 @@ export function ProjectIdeaPage({ projectId }: ProjectIdeaPageProps) {
   const [enriched, setEnriched] = useState<EnrichedIdeaData | null>(null);
   const [editedEnriched, setEditedEnriched] = useState<EnrichedIdeaData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isPollingScenes, setIsPollingScenes] = useState(false);
 
   const updateProjectMutation = useUpdateProject();
   const enrichIdeaMutation = useEnrichIdea();
@@ -125,27 +125,7 @@ export function ProjectIdeaPage({ projectId }: ProjectIdeaPageProps) {
         title: projectTitle,
       });
 
-      // Poll until scenes array is populated before navigating
-      setIsPollingScenes(true);
-      const maxAttempts = 60;
-      for (let i = 0; i < maxAttempts; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        try {
-          const data = await getStoryboard(storyboard.id);
-          if (data.scenes.length > 0) {
-            break;
-          }
-        } catch {
-          // keep polling
-        }
-      }
-      setIsPollingScenes(false);
-
-      router.push(
-        `/project/create/storyboard?projectId=${encodeURIComponent(
-          resolvedProjectId,
-        )}&storyboardId=${encodeURIComponent(storyboard.id)}`,
-      );
+      startStoryboardTracking({ projectId: resolvedProjectId, storyboardId: storyboard.id });
     } catch (error) {
       if (error instanceof ApiError) {
         console.error("[project-create] api error", error);
@@ -159,8 +139,7 @@ export function ProjectIdeaPage({ projectId }: ProjectIdeaPageProps) {
   const isIdeaValid = idea.trim().length > 0;
   const isPendingConfirm =
     confirmEnrichedIdeaMutation.isPending ||
-    storyboardMutation.isPending ||
-    isPollingScenes;
+    storyboardMutation.isPending;
 
   async function handleTitleSave(newTitle: string) {
     setProjectTitle(newTitle);

@@ -153,9 +153,6 @@ export function ProjectSavePage({
               {isLoading ? "영상 렌더링 중입니다." : "영상이 준비되면 여기에서 볼 수 있습니다."}
             </div>
           )}
-          <div className="absolute bottom-[14px] left-[16px] right-[16px] rounded-[8px] bg-[#1f1f24] px-[12px] py-[8px] text-center text-[14px] font-semibold text-white">
-            자막 나오는 공간
-          </div>
         </div>
 
         <section className="rounded-[24px] border border-[#60606e] bg-[#202026] px-[18px] py-[22px]">
