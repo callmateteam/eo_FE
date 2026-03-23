@@ -11,18 +11,17 @@ import { Icon } from "@/components/ui/Icon";
 import { getProjectDraft, updateProjectDraft } from "@/lib/project-draft";
 import { ApiError } from "@/lib/api/client";
 import { getProject } from "@/lib/api/projects";
-import { getVideoEdit } from "@/lib/api/video-edit";
 import {
   useStoryboard,
   useUpdateScene,
   useRegenerateSceneImage,
+  useRegenerateSceneVideo,
   useGenerateVideos,
 } from "@/hooks/useStoryboard";
 import { useUpdateProject } from "@/hooks/useProjects";
 import type { SceneItem } from "@/lib/api/types";
 
 import { ProjectCreateShell } from "@/components/project-create/ProjectCreateShell";
-import { VideoGenerateProgressModal } from "@/components/character-create/modals/VideoGenerateProgressModal";
 
 type ProjectStoryboardPageProps = {
   projectId?: string;
@@ -40,12 +39,24 @@ function isPendingImageStatus(scene: SceneItem) {
   return !isFailedImageStatus(scene) && imageStatus !== "COMPLETED";
 }
 
+function isFailedVideoStatus(scene: SceneItem) {
+  const status = scene.video_status?.toUpperCase();
+  return status === "FAILED" || status === "ERROR";
+}
+
+function isPendingVideoStatus(scene: SceneItem) {
+  if (scene.video_url) return false;
+  const status = scene.video_status?.toUpperCase();
+  if (!status) return false;
+  return !isFailedVideoStatus(scene);
+}
+
 export function ProjectStoryboardPage({
   projectId,
   storyboardId,
 }: ProjectStoryboardPageProps) {
   const router = useRouter();
-  const { startVideoGenerationTracking } = useProjectToast();
+  const { startVideoGenerationTracking, stopVideoGenerationTracking } = useProjectToast();
   const draft = getProjectDraft();
   const resolvedProjectId = projectId ?? draft?.projectId ?? "";
   const resolvedStoryboardId = storyboardId ?? draft?.storyboardId ?? "";
@@ -55,13 +66,15 @@ export function ProjectStoryboardPage({
     Record<string, { content: string; title: string }>
   >({});
   const [regeneratingSceneId, setRegeneratingSceneId] = useState<string | null>(null);
+  const [regeneratingVideoSceneId, setRegeneratingVideoSceneId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false);
   const [shouldPoll, setShouldPoll] = useState(true);
   const [showStoryboardToast, setShowStoryboardToast] = useState(false);
+  const [isVideoGenerating, setIsVideoGenerating] = useState(false);
   const prevShouldPollRef = useRef(true);
+  const hasNavigatedRef = useRef(false);
 
-  // Storyboard data with polling: refetch every 3s while any scene has a pending image
+  // Storyboard data with polling: refetch every 3s while any scene has a pending image or video
   const { data: storyboardData, isLoading: isLoadingStoryboard } = useStoryboard(
     resolvedStoryboardId,
     { refetchInterval: shouldPoll ? 3000 : false },
@@ -69,27 +82,56 @@ export function ProjectStoryboardPage({
 
   const scenes: SceneItem[] = storyboardData?.scenes ?? [];
 
-  // Update polling state: keep polling while storyboard has no scenes yet or any scene image is pending
+  // Update polling state
   useEffect(() => {
     if (!storyboardData) return;
 
     const status = storyboardData.status?.toUpperCase();
     const hasScenes = storyboardData.scenes.length > 0;
-    const hasPending = storyboardData.scenes.some((scene) => isPendingImageStatus(scene));
+    const hasPendingImages = storyboardData.scenes.some((scene) => isPendingImageStatus(scene));
+    const hasPendingVideos = isVideoGenerating && storyboardData.scenes.some((scene) => isPendingVideoStatus(scene));
 
-    // Keep polling if: storyboard is still generating, no scenes yet, or scenes have pending images
-    const nextShouldPoll = !hasScenes || hasPending || status === "GENERATING";
+    const nextShouldPoll = !hasScenes || hasPendingImages || hasPendingVideos || status === "GENERATING";
     setShouldPoll(nextShouldPoll);
 
-    // Show toast when polling completes and storyboard has scenes
-    if (prevShouldPollRef.current && !nextShouldPoll && hasScenes) {
+    if (prevShouldPollRef.current && !nextShouldPoll && hasScenes && !isVideoGenerating) {
       setShowStoryboardToast(true);
     }
     prevShouldPollRef.current = nextShouldPoll;
-  }, [storyboardData]);
+  }, [storyboardData, isVideoGenerating]);
+
+  // Auto-navigate to edit page when all scene videos are ready
+  useEffect(() => {
+    if (!isVideoGenerating || hasNavigatedRef.current) return;
+    if (scenes.length === 0) return;
+
+    const allVideosReady = scenes.every((scene) => scene.video_url);
+    if (allVideosReady) {
+      hasNavigatedRef.current = true;
+      router.push(
+        `/project/${resolvedProjectId}/edit?storyboardId=${encodeURIComponent(resolvedStoryboardId)}`,
+      );
+    }
+  }, [scenes, isVideoGenerating, resolvedProjectId, resolvedStoryboardId, router]);
+
+  // Stop toast when all scenes fail (no hope of completion)
+  useEffect(() => {
+    if (!isVideoGenerating) return;
+    if (scenes.length === 0) return;
+
+    const allFailed = scenes.every((scene) => isFailedVideoStatus(scene) || scene.video_url);
+    const anyFailed = scenes.some((scene) => isFailedVideoStatus(scene));
+    const anySuccess = scenes.some((scene) => scene.video_url);
+
+    if (allFailed && anyFailed && !anySuccess) {
+      // All scenes failed — stop toast
+      stopVideoGenerationTracking();
+    }
+  }, [scenes, isVideoGenerating, stopVideoGenerationTracking]);
 
   const updateSceneMutation = useUpdateScene();
   const regenerateSceneImageMutation = useRegenerateSceneImage();
+  const regenerateSceneVideoMutation = useRegenerateSceneVideo();
   const generateVideosMutation = useGenerateVideos();
   const updateProjectMutation = useUpdateProject();
 
@@ -129,9 +171,21 @@ export function ProjectStoryboardPage({
     }
   }, [regeneratingSceneId, storyboardData]);
 
+  // Clear regeneratingVideoSceneId when the scene video is no longer pending
+  useEffect(() => {
+    if (regeneratingVideoSceneId && storyboardData) {
+      const scene = storyboardData.scenes.find((s) => s.id === regeneratingVideoSceneId);
+      if (scene && (scene.video_url || isFailedVideoStatus(scene))) {
+        setRegeneratingVideoSceneId(null);
+      }
+    }
+  }, [regeneratingVideoSceneId, storyboardData]);
+
   const hasScenes = scenes.length > 0;
   const hasFailedScenes = scenes.some((scene) => isFailedImageStatus(scene));
   const hasPendingScenes = scenes.some((scene) => isPendingImageStatus(scene));
+  const hasFailedVideoScenes = isVideoGenerating && scenes.some((scene) => isFailedVideoStatus(scene));
+  const hasPendingVideoScenes = isVideoGenerating && scenes.some((scene) => isPendingVideoStatus(scene));
   const selectedScene = useMemo(
     () => scenes.find((scene) => scene.id === selectedSceneId) ?? scenes[0],
     [scenes, selectedSceneId]
@@ -172,6 +226,24 @@ export function ProjectStoryboardPage({
     }
   }
 
+  async function handleRegenerateVideo(sceneId: string) {
+    setRegeneratingVideoSceneId(sceneId);
+    setShouldPoll(true);
+    try {
+      await regenerateSceneVideoMutation.mutateAsync({
+        storyboardId: resolvedStoryboardId,
+        sceneId,
+      });
+    } catch (error) {
+      setRegeneratingVideoSceneId(null);
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("영상 재생성에 실패했습니다. 다시 시도해주세요.");
+      }
+    }
+  }
+
   async function handleGenerateVideos() {
     if (!resolvedStoryboardId) return;
 
@@ -192,31 +264,10 @@ export function ProjectStoryboardPage({
         storyboardId: resolvedStoryboardId,
       });
 
-      // Poll for video edit readiness then navigate
-      setIsGenerationModalOpen(true);
-
-      const pollVideoEdit = async () => {
-        const maxAttempts = 120; // ~10 minutes at 5s intervals
-        for (let i = 0; i < maxAttempts; i++) {
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-          try {
-            const videoEdit = await getVideoEdit(resolvedStoryboardId);
-            if (videoEdit) {
-              setIsGenerationModalOpen(false);
-              router.push(
-                `/project/${resolvedProjectId}/edit?storyboardId=${encodeURIComponent(
-                  resolvedStoryboardId
-                )}`
-              );
-              return;
-            }
-          } catch {
-            // Not ready yet, continue polling
-          }
-        }
-      };
-
-      void pollVideoEdit();
+      // Enable polling and mark video generation as in progress
+      hasNavigatedRef.current = false;
+      setShouldPoll(true);
+      setIsVideoGenerating(true);
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
@@ -266,14 +317,15 @@ export function ProjectStoryboardPage({
               isLoadingStoryboard ||
               !hasScenes ||
               hasPendingScenes ||
-              hasFailedScenes
+              hasFailedScenes ||
+              isVideoGenerating
             }
             onClick={() => {
               setErrorMessage(null);
               void handleGenerateVideos();
             }}
           >
-            영상 생성
+            {isVideoGenerating ? "영상 생성 중..." : "영상 생성"}
           </Button>
         </>
       }
@@ -281,6 +333,18 @@ export function ProjectStoryboardPage({
       {errorMessage ? (
         <p className="mx-auto mb-[18px] max-w-[1162px] rounded-[14px] border border-[#5b2c32] bg-[rgba(91,44,50,0.18)] px-[18px] py-[14px] text-[14px] text-[#ffb8bf]">
           {errorMessage}
+        </p>
+      ) : null}
+
+      {isVideoGenerating && hasPendingVideoScenes ? (
+        <p className="mx-auto mb-[18px] max-w-[1162px] rounded-[14px] border border-[#3a3a43] bg-[#1b1b20] px-[18px] py-[14px] text-[14px] text-[#d7d7dc]">
+          씬별 영상을 생성하고 있습니다. 완료되면 자동으로 편집 화면으로 이동합니다.
+        </p>
+      ) : null}
+
+      {isVideoGenerating && hasFailedVideoScenes && !hasPendingVideoScenes ? (
+        <p className="mx-auto mb-[18px] max-w-[1162px] rounded-[14px] border border-[#5b2c32] bg-[rgba(91,44,50,0.18)] px-[18px] py-[14px] text-[14px] text-[#ffb8bf]">
+          일부 씬 영상 생성이 실패했습니다. 실패한 씬을 선택한 뒤 재생성을 눌러 다시 시도해주세요.
         </p>
       ) : null}
 
@@ -308,6 +372,9 @@ export function ProjectStoryboardPage({
             <div className="grid grid-cols-1 gap-[12px] pr-[10px] sm:grid-cols-2 xl:grid-cols-3">
               {scenes.map((scene, index) => {
                 const isSelected = scene.id === selectedScene?.id;
+                const videoFailed = isVideoGenerating && isFailedVideoStatus(scene);
+                const videoPending = isVideoGenerating && isPendingVideoStatus(scene);
+                const videoReady = isVideoGenerating && Boolean(scene.video_url);
 
                 return (
                   <button
@@ -361,6 +428,52 @@ export function ProjectStoryboardPage({
                           <div className="flex items-center gap-2 rounded-full bg-[rgba(20,20,24,0.9)] px-[12px] py-[8px] text-[12px] font-medium text-white">
                             <span className="inline-flex size-3 animate-spin rounded-full border-2 border-current border-r-transparent" />
                             이미지 재생성 중
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {/* Video generation status overlays */}
+                      {videoReady ? (
+                        <div className="absolute right-[8px] top-[8px]">
+                          <div className="flex items-center gap-1.5 rounded-full bg-[rgba(20,20,24,0.88)] px-[10px] py-[5px] text-[11px] font-semibold text-[#4ade80]">
+                            <Icon className="size-3" name="check" />
+                            영상 완료
+                          </div>
+                        </div>
+                      ) : null}
+                      {videoPending && regeneratingVideoSceneId !== scene.id ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[rgba(10,10,14,0.52)]">
+                          <div className="flex items-center gap-2 rounded-full bg-[rgba(20,20,24,0.9)] px-[12px] py-[8px] text-[12px] font-medium text-white">
+                            <span className="inline-flex size-3 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                            영상 생성 중
+                          </div>
+                        </div>
+                      ) : null}
+                      {regeneratingVideoSceneId === scene.id ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[rgba(10,10,14,0.52)]">
+                          <div className="flex items-center gap-2 rounded-full bg-[rgba(20,20,24,0.9)] px-[12px] py-[8px] text-[12px] font-medium text-white">
+                            <span className="inline-flex size-3 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                            영상 재생성 중
+                          </div>
+                        </div>
+                      ) : null}
+                      {videoFailed && regeneratingVideoSceneId !== scene.id ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[rgba(26,14,16,0.72)]">
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="rounded-full border border-[#6b2e37] bg-[rgba(60,20,27,0.92)] px-[12px] py-[8px] text-[12px] font-medium text-[#ffb8bf]">
+                              영상 생성 실패
+                            </div>
+                            <button
+                              className="rounded-full border border-[#4a3a60] bg-[rgba(40,20,60,0.9)] px-[12px] py-[6px] text-[11px] font-semibold text-[#c084fc] transition-colors hover:bg-[rgba(60,30,80,0.9)]"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setErrorMessage(null);
+                                void handleRegenerateVideo(scene.id);
+                              }}
+                              type="button"
+                            >
+                              재생성
+                            </button>
                           </div>
                         </div>
                       ) : null}
@@ -432,6 +545,7 @@ export function ProjectStoryboardPage({
               <div className="mt-[12px]">
                 <input
                   className="mb-[10px] h-[44px] w-full rounded-[12px] border border-[#2d2d34] bg-[#121214] px-[14px] text-body-lg text-white outline-none"
+                  disabled={isVideoGenerating}
                   onChange={(event) =>
                     setSceneDrafts((current) => ({
                       ...current,
@@ -445,7 +559,8 @@ export function ProjectStoryboardPage({
                 />
                 <div className="rounded-[12px] border border-[#2d2d34] bg-[#121214] px-[16px] py-[14px]">
                   <textarea
-                    className="h-[122px] w-full resize-none border-0 bg-transparent text-body-lg leading-[1.6] text-[#f1f1f4] outline-none placeholder:text-[#6d6d76]"
+                    className="h-[122px] w-full resize-none border-0 bg-transparent text-body-lg leading-[1.6] text-[#f1f1f4] outline-none placeholder:text-[#6d6d76] disabled:opacity-50"
+                    disabled={isVideoGenerating}
                     onChange={(event) =>
                       setSceneDrafts((current) => ({
                         ...current,
@@ -464,7 +579,7 @@ export function ProjectStoryboardPage({
             <Button
               className="mt-auto w-full"
               size="tiny"
-              disabled={!selectedScene}
+              disabled={!selectedScene || isVideoGenerating}
               onClick={() => {
                 setErrorMessage(null);
                 void handleSaveScene();
@@ -474,19 +589,6 @@ export function ProjectStoryboardPage({
             </Button>
           </aside>
         </div>
-      ) : null}
-
-      {isGenerationModalOpen ? (
-        <VideoGenerateProgressModal
-          onGoDashboard={() => {
-            setIsGenerationModalOpen(false);
-            router.push("/dashboard");
-          }}
-          onGoNext={() => {
-            setIsGenerationModalOpen(false);
-            router.push("/project/create");
-          }}
-        />
       ) : null}
 
       {showStoryboardToast ? (

@@ -249,6 +249,7 @@ export function ProjectEditPage({
   const [selectedSceneId, setSelectedSceneId] = useState("");
   const [localEditData, setLocalEditData] = useState<EditData | null>(null);
   const [isScriptPanelOpen, setIsScriptPanelOpen] = useState(false);
+  const [scriptPanelSceneId, setScriptPanelSceneId] = useState<string | null>(null);
   const [editingSubtitleIndex, setEditingSubtitleIndex] = useState<number | null>(null);
   const [panelStyle, setPanelStyle] = useState<SubtitleStyle>(defaultSubtitleStyle);
   const [panelOutlineSize, setPanelOutlineSize] = useState(4);
@@ -469,6 +470,8 @@ export function ProjectEditPage({
     const targetScene = scenes.find((s) => s.id === sceneId) ?? selectedScene;
     if (!targetScene) return;
 
+    setScriptPanelSceneId(sceneId);
+
     const existingEntries = getSceneSubtitleEntries(localEditData ?? {}, targetScene);
     let nextSubtitle: SubtitleItem;
     let nextEditingIndex: number | null;
@@ -491,7 +494,10 @@ export function ProjectEditPage({
   };
 
   const applyScriptPanelChanges = () => {
-    if (!selectedScene) return;
+    // scriptPanelSceneId로 씬 탐색 — applyScriptPanelChanges 실행 시점에 selectedScene이
+    // 다른 씬으로 바뀌어있을 수 있으므로 패널을 연 시점의 sceneId를 사용 (stale 방지)
+    const targetScene = scenes.find((s) => s.id === scriptPanelSceneId) ?? selectedScene;
+    if (!targetScene) return;
     const currentEditData = localEditData ?? {};
 
     const finalStyle: SubtitleStyle = {
@@ -502,18 +508,18 @@ export function ProjectEditPage({
     };
 
     // 기존 자막에서 text 보존 (없으면 scene.content 기본값)
-    const existingEntries = getSceneSubtitleEntries(currentEditData, selectedScene);
-    const baseSubtitle = existingEntries[0]?.subtitle ?? createDefaultSubtitle(selectedScene);
+    const existingEntries = getSceneSubtitleEntries(currentEditData, targetScene);
+    const baseSubtitle = existingEntries[0]?.subtitle ?? createDefaultSubtitle(targetScene);
 
     const nextSubtitle: SubtitleItem = {
       ...baseSubtitle,
-      scene_id: selectedScene.id,
+      scene_id: targetScene.id,
       style: finalStyle,
     };
 
     // 다른 씬 자막은 유지, 현재 씬 자막은 1개로 교체 (중복 완전 제거)
     const otherSubtitles = (currentEditData.subtitles ?? []).filter(
-      (sub) => sub.scene_id !== selectedScene.id,
+      (sub) => sub.scene_id !== targetScene.id,
     );
 
     const finalSubtitles = applyToAll
@@ -682,7 +688,11 @@ export function ProjectEditPage({
           </Button>
           <Button
             size="tiny"
-            disabled={!editData}
+            disabled={
+              !editData ||
+              scenes.some((s) => !s.video_url) ||
+              scenes.some((s) => s.video_status?.toUpperCase() === "FAILED")
+            }
             onClick={() => {
               setErrorMessage(null);
               void handleRender();
@@ -896,6 +906,9 @@ export function ProjectEditPage({
               );
             })}
           </div>
+          <p className="mt-[6px] text-right text-[11px] text-[#6d6d76]">
+            * 스크립트를 클릭하시면 수정 가능합니다
+          </p>
 
           {/* TTS row */}
           {scenes.some((s) => s.narration_url) ? (

@@ -123,6 +123,14 @@ export type CreateCustomCharacterResponse = {
   message: string;
 };
 
+export type UpdateCustomCharacterPayload = {
+  name?: string | null;
+  description?: string | null;
+  style?: CharacterStyle | null;
+  voice_id?: VoiceId | null;
+  regenerate?: boolean;
+};
+
 // ---------------------------------------------------------------------------
 // Projects
 // ---------------------------------------------------------------------------

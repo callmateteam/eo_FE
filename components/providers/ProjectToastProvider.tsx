@@ -32,6 +32,7 @@ const TRACKING_STORAGE_KEY = "eo:project-video-tracking";
 type ProjectToastContextValue = {
   hideCompletionToast: () => void;
   startVideoGenerationTracking: (payload: TrackingPayload) => void;
+  stopVideoGenerationTracking: () => void;
 };
 
 const ProjectToastContext = createContext<ProjectToastContextValue | null>(null);
@@ -104,6 +105,9 @@ export function ProjectToastProvider({ children }: PropsWithChildren) {
             title: info.title,
           });
           setTracking(null);
+        } else if (status === "FAILED" || status === "ERROR") {
+          // Video generation failed — stop polling silently
+          setTracking(null);
         }
         // Other statuses (e.g. RENDERING) — keep polling
       } catch (error) {
@@ -143,6 +147,9 @@ export function ProjectToastProvider({ children }: PropsWithChildren) {
       startVideoGenerationTracking: (payload) => {
         setCompletion(null);
         setTracking(payload);
+      },
+      stopVideoGenerationTracking: () => {
+        setTracking(null);
       },
     }),
     []

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { CharacterCard } from "@/components/dashboard/CharacterCard";
 import { CharacterCreateCard } from "@/components/dashboard/CharacterCreateCard";
+import { CharacterEditModal } from "@/components/character/CharacterEditModal";
 import { Icon } from "@/components/ui/Icon";
 import { useDeleteCustomCharacter } from "@/hooks/useCharacters";
 
@@ -19,8 +20,15 @@ type CharacterCarouselProps = {
   characters: DashboardCharacter[];
 };
 
+type EditTarget = {
+  id: string;
+  isCustom: boolean;
+  imageSrc: string;
+};
+
 export function CharacterCarousel({ characters }: CharacterCarouselProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const deleteCustomCharacterMutation = useDeleteCustomCharacter();
   const hasCharacters = characters.length > 0;
 
@@ -38,6 +46,15 @@ export function CharacterCarousel({ characters }: CharacterCarouselProps) {
   }
 
   return (
+    <>
+    {editTarget && (
+      <CharacterEditModal
+        characterId={editTarget.id}
+        imageSrc={editTarget.imageSrc}
+        isCustom={editTarget.isCustom}
+        onClose={() => setEditTarget(null)}
+      />
+    )}
     <div className="relative">
       {hasCharacters ? (
         <>
@@ -72,18 +89,22 @@ export function CharacterCarousel({ characters }: CharacterCarouselProps) {
         </div>
         {characters.map((character, index) => {
           const isCustom = character.type?.toLowerCase() !== "preset";
+          const imageSrc = character.thumbnail_url || character.image_url || "";
           return (
             <div key={character.id} className="snap-start">
               <CharacterCard
                 character={character}
                 index={index}
                 onDelete={isCustom ? () => deleteCustomCharacterMutation.mutate(character.id) : undefined}
-                onEdit={isCustom ? () => undefined : undefined}
+                onEdit={() =>
+                  setEditTarget({ id: character.id, isCustom, imageSrc })
+                }
               />
             </div>
           );
         })}
       </div>
     </div>
+    </>
   );
 }
