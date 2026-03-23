@@ -63,6 +63,8 @@ export const landingAssets = {
   },
 } as const;
 
+export const landingVideo = "/landing/eo_video_f7f1eefa.mp4";
+
 export const commonAssets = {
   logoMark: "/assets/common/logo-mark.png",
 } as const;

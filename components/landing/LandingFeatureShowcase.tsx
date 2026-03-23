@@ -253,7 +253,7 @@ export function LandingFeatureShowcase() {
               ))}
             </div>
 
-            <div className="flex min-h-0 items-start justify-center pt-[5vh] lg:pt-[164px]">
+            <div className="flex min-h-0 items-start justify-center pt-[5vh] lg:pt-[clamp(40px,15vh,164px)]">
               <div className="w-full max-w-[743px] overflow-hidden">
                 <div
                   className="flex transition-transform duration-700 ease-out"
