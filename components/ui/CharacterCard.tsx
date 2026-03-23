@@ -107,7 +107,7 @@ export function CharacterCard({
                   size === "large" && "h-6 w-6",
                   isMenuOpen && "opacity-100"
                 )}
-                onClick={() => setIsMenuOpen((current) => !current)}
+                onClick={(e) => { e.stopPropagation(); setIsMenuOpen((current) => !current); }}
                 type="button"
               >
                 <span

@@ -22,6 +22,7 @@ import { useUpdateProject } from "@/hooks/useProjects";
 import type { SceneItem } from "@/lib/api/types";
 
 import { ProjectCreateShell } from "@/components/project-create/ProjectCreateShell";
+import { VideoGenerateProgressModal } from "@/components/character-create/modals/VideoGenerateProgressModal";
 
 type ProjectStoryboardPageProps = {
   projectId?: string;
@@ -71,6 +72,7 @@ export function ProjectStoryboardPage({
   const [shouldPoll, setShouldPoll] = useState(true);
   const [showStoryboardToast, setShowStoryboardToast] = useState(false);
   const [isVideoGenerating, setIsVideoGenerating] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
   const prevShouldPollRef = useRef(true);
   const hasNavigatedRef = useRef(false);
 
@@ -184,8 +186,6 @@ export function ProjectStoryboardPage({
   const hasScenes = scenes.length > 0;
   const hasFailedScenes = scenes.some((scene) => isFailedImageStatus(scene));
   const hasPendingScenes = scenes.some((scene) => isPendingImageStatus(scene));
-  const hasFailedVideoScenes = isVideoGenerating && scenes.some((scene) => isFailedVideoStatus(scene));
-  const hasPendingVideoScenes = isVideoGenerating && scenes.some((scene) => isPendingVideoStatus(scene));
   const selectedScene = useMemo(
     () => scenes.find((scene) => scene.id === selectedSceneId) ?? scenes[0],
     [scenes, selectedSceneId]
@@ -268,6 +268,7 @@ export function ProjectStoryboardPage({
       hasNavigatedRef.current = false;
       setShouldPoll(true);
       setIsVideoGenerating(true);
+      setShowVideoModal(true);
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
@@ -287,6 +288,7 @@ export function ProjectStoryboardPage({
   }
 
   return (
+    <>
     <ProjectCreateShell
       currentStep={2}
       description="AI가 생성한 스토리보드를 검토하고 편집하세요"
@@ -336,18 +338,6 @@ export function ProjectStoryboardPage({
         </p>
       ) : null}
 
-      {isVideoGenerating && hasPendingVideoScenes ? (
-        <p className="mx-auto mb-[18px] max-w-[1162px] rounded-[14px] border border-[#3a3a43] bg-[#1b1b20] px-[18px] py-[14px] text-[14px] text-[#d7d7dc]">
-          씬별 영상을 생성하고 있습니다. 완료되면 자동으로 편집 화면으로 이동합니다.
-        </p>
-      ) : null}
-
-      {isVideoGenerating && hasFailedVideoScenes && !hasPendingVideoScenes ? (
-        <p className="mx-auto mb-[18px] max-w-[1162px] rounded-[14px] border border-[#5b2c32] bg-[rgba(91,44,50,0.18)] px-[18px] py-[14px] text-[14px] text-[#ffb8bf]">
-          일부 씬 영상 생성이 실패했습니다. 실패한 씬을 선택한 뒤 재생성을 눌러 다시 시도해주세요.
-        </p>
-      ) : null}
-
       {isLoadingStoryboard && !hasScenes ? (
         <div className="flex min-h-[360px] items-center justify-center">
           <div className="flex items-center gap-3 text-[#d7d7dc]">
@@ -373,8 +363,6 @@ export function ProjectStoryboardPage({
               {scenes.map((scene, index) => {
                 const isSelected = scene.id === selectedScene?.id;
                 const videoFailed = isVideoGenerating && isFailedVideoStatus(scene);
-                const videoPending = isVideoGenerating && isPendingVideoStatus(scene);
-                const videoReady = isVideoGenerating && Boolean(scene.video_url);
 
                 return (
                   <button
@@ -433,30 +421,6 @@ export function ProjectStoryboardPage({
                       ) : null}
 
                       {/* Video generation status overlays */}
-                      {videoReady ? (
-                        <div className="absolute right-[8px] top-[8px]">
-                          <div className="flex items-center gap-1.5 rounded-full bg-[rgba(20,20,24,0.88)] px-[10px] py-[5px] text-[11px] font-semibold text-[#4ade80]">
-                            <Icon className="size-3" name="check" />
-                            영상 완료
-                          </div>
-                        </div>
-                      ) : null}
-                      {videoPending && regeneratingVideoSceneId !== scene.id ? (
-                        <div className="absolute inset-0 flex items-center justify-center bg-[rgba(10,10,14,0.52)]">
-                          <div className="flex items-center gap-2 rounded-full bg-[rgba(20,20,24,0.9)] px-[12px] py-[8px] text-[12px] font-medium text-white">
-                            <span className="inline-flex size-3 animate-spin rounded-full border-2 border-current border-r-transparent" />
-                            영상 생성 중
-                          </div>
-                        </div>
-                      ) : null}
-                      {regeneratingVideoSceneId === scene.id ? (
-                        <div className="absolute inset-0 flex items-center justify-center bg-[rgba(10,10,14,0.52)]">
-                          <div className="flex items-center gap-2 rounded-full bg-[rgba(20,20,24,0.9)] px-[12px] py-[8px] text-[12px] font-medium text-white">
-                            <span className="inline-flex size-3 animate-spin rounded-full border-2 border-current border-r-transparent" />
-                            영상 재생성 중
-                          </div>
-                        </div>
-                      ) : null}
                       {videoFailed && regeneratingVideoSceneId !== scene.id ? (
                         <div className="absolute inset-0 flex items-center justify-center bg-[rgba(26,14,16,0.72)]">
                           <div className="flex flex-col items-center gap-2">
@@ -604,5 +568,19 @@ export function ProjectStoryboardPage({
         </div>
       ) : null}
     </ProjectCreateShell>
+
+      {showVideoModal ? (
+        <VideoGenerateProgressModal
+          onGoDashboard={() => {
+            setShowVideoModal(false);
+            router.push("/dashboard");
+          }}
+          onGoNext={() => {
+            setShowVideoModal(false);
+            router.push("/project/create");
+          }}
+        />
+      ) : null}
+    </>
   );
 }
