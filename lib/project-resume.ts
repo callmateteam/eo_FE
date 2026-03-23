@@ -20,12 +20,7 @@ export async function resolveProjectResumePath(projectId: string) {
     return `/project/create/idea?projectId=${encodeURIComponent(projectId)}`;
   }
 
-  // Stage 4: 스토리보드 검토
-  if (project.current_stage === 4) {
-    return `/project/create/storyboard?projectId=${encodeURIComponent(projectId)}&storyboardId=${encodeURIComponent(storyboardId)}`;
-  }
-
-  // Stage 5+: 영상 생성/편집
+  // Stage 4+: 영상 생성 요청됨 — 완료 여부 확인 후 분기
   const storyboard = await getStoryboard(storyboardId);
   const storyboardStatus = storyboard.status.toUpperCase();
   const hasReadyVideos =
@@ -33,11 +28,20 @@ export async function resolveProjectResumePath(projectId: string) {
     storyboardStatus === "VIDEO_READY" ||
     storyboard.scenes.some((scene) => scene.video_status?.toUpperCase() === "COMPLETED");
 
-  if (!hasReadyVideos) {
-    return `/project/create/storyboard?projectId=${encodeURIComponent(
-      projectId,
-    )}&storyboardId=${encodeURIComponent(storyboardId)}`;
+  if (hasReadyVideos) {
+    return `/project/${projectId}/edit?storyboardId=${encodeURIComponent(storyboardId)}`;
   }
 
-  return `/project/${projectId}/edit?storyboardId=${encodeURIComponent(storyboardId)}`;
+  const hasPendingVideos =
+    project.current_stage >= 4 &&
+    storyboard.scenes.some((scene) => {
+      const status = scene.video_status?.toUpperCase();
+      return status && status !== "COMPLETED" && status !== "FAILED" && status !== "ERROR";
+    });
+
+  if (hasPendingVideos) {
+    return `/project/create/storyboard?projectId=${encodeURIComponent(projectId)}&storyboardId=${encodeURIComponent(storyboardId)}&resumeGeneration=true`;
+  }
+
+  return `/project/create/storyboard?projectId=${encodeURIComponent(projectId)}&storyboardId=${encodeURIComponent(storyboardId)}`;
 }

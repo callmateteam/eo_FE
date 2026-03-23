@@ -28,6 +28,7 @@ export function Menu({
         "flex w-[105px] flex-col rounded-[12px] bg-[#121214]",
         className
       )}
+      onClick={(e) => e.stopPropagation()}
     >
       <div className="flex w-full items-center justify-center px-3 py-2">
         <MenuButton onClick={onEdit}>
