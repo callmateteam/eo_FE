@@ -61,6 +61,25 @@ export function useRegenerateSceneImage() {
   });
 }
 
+export function useRegenerateSceneVideo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      storyboardId,
+      sceneId,
+    }: {
+      storyboardId: string;
+      sceneId: string;
+    }) => storyboardsApi.regenerateSceneVideo(storyboardId, sceneId),
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.storyboard(variables.storyboardId),
+      });
+    },
+  });
+}
+
 export function useGenerateVideos() {
   return useMutation({
     mutationFn: storyboardsApi.generateVideos,

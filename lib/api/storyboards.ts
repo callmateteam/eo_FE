@@ -33,6 +33,13 @@ export function regenerateSceneImage(storyboardId: string, sceneId: string) {
   );
 }
 
+export function regenerateSceneVideo(storyboardId: string, sceneId: string) {
+  return apiFetch<{ scene_id: string; status: string; message: string }>(
+    "POST",
+    `/api/storyboards/${storyboardId}/scenes/${sceneId}/regenerate-video`,
+  );
+}
+
 export function generateVideos(storyboardId: string) {
   return apiFetch<{ storyboard_id: string; status: string; message: string }>(
     "POST",

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { CharacterEditModal } from "@/components/character/CharacterEditModal";
 import { CharacterTabs } from "@/components/character/CharacterTabs";
 import { CharacterCard } from "@/components/ui/CharacterCard";
 import { ProjectCreateCard } from "@/components/ui/ProjectCreateCard";
@@ -19,8 +20,15 @@ type CharacterCardItem = {
   title: string;
 };
 
+type EditTarget = {
+  id: string;
+  isCustom: boolean;
+  imageSrc: string;
+};
+
 export function CharacterPage() {
   const [activeTab, setActiveTab] = useState<CharacterTab>("all");
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const router = useRouter();
   const presetCharactersQuery = useCharacters();
   const customCharactersQuery = useCustomCharacters();
@@ -63,6 +71,15 @@ export function CharacterPage() {
   }, [activeTab, customCharacters, presetCharacters]);
 
   return (
+    <>
+    {editTarget && (
+      <CharacterEditModal
+        characterId={editTarget.id}
+        imageSrc={editTarget.imageSrc}
+        isCustom={editTarget.isCustom}
+        onClose={() => setEditTarget(null)}
+      />
+    )}
     <div className="px-[34px] pb-[38px] pt-[24px]">
       <h1 className="text-heading-lg font-semibold tracking-[-0.03em] text-white">
         캐릭터
@@ -85,14 +102,21 @@ export function CharacterPage() {
               onDelete={
                 character.isCustom
                   ? () => deleteCustomCharacterMutation.mutate(character.id)
-                  : () => undefined
+                  : undefined
               }
-              onEdit={() => undefined}
+              onEdit={() =>
+                setEditTarget({
+                  id: character.id,
+                  isCustom: character.isCustom,
+                  imageSrc: character.imageSrc,
+                })
+              }
               title={character.title}
             />
           ))}
         </div>
       </section>
     </div>
+    </>
   );
 }

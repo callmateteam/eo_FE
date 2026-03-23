@@ -4,7 +4,9 @@ export const queryKeys = {
   },
   characters: {
     preset: ["characters", "preset"] as const,
+    presetSingle: (id: string) => ["characters", "preset", id] as const,
     custom: ["characters", "custom"] as const,
+    customSingle: (id: string) => ["characters", "custom", id] as const,
   },
   projects: {
     all: ["projects"] as const,
