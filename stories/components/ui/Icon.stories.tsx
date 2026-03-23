@@ -5,8 +5,10 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 const iconNames: IconName[] = [
   "avatar",
   "check",
+  "close",
   "dashboard",
   "down",
+  "fullscreen",
   "left",
   "line",
   "pause",
@@ -15,6 +17,7 @@ const iconNames: IconName[] = [
   "play-line",
   "plus",
   "redo",
+  "reset",
   "right",
   "sound",
   "up",
