@@ -14,6 +14,7 @@ type ProjectCardProps = {
   imageSrc: string;
   initialMenuOpen?: boolean;
   menuAriaLabel?: string;
+  onClick?: () => void;
   onDelete?: () => void;
   onEdit?: () => void;
   statusColor?: BadgeColor;
@@ -28,6 +29,7 @@ export function ProjectCard({
   imageSrc,
   initialMenuOpen = false,
   menuAriaLabel = "프로젝트 메뉴 열기",
+  onClick,
   onDelete,
   onEdit,
   statusColor = "blue",
@@ -80,8 +82,10 @@ export function ProjectCard({
         "group relative h-[280px] w-[225px] shrink-0 overflow-hidden rounded-[20px] border border-transparent bg-[#2c2c31]",
         (isMenuOpen || onEdit || onDelete) && "hover:border-[#ba4eff]",
         isMenuOpen && "border-[#ba4eff]",
+        onClick && "cursor-pointer",
         className
       )}
+      onClick={onClick}
     >
       <div className="absolute inset-0">
         <Image
@@ -104,7 +108,7 @@ export function ProjectCard({
                 "flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-[#f5f5f5] opacity-0 transition-opacity group-hover:opacity-100",
                 isMenuOpen && "opacity-100"
               )}
-              onClick={handleMenuToggle}
+              onClick={(e) => { e.stopPropagation(); handleMenuToggle(); }}
               type="button"
             >
               <span className="mb-[7px] text-[18px] leading-none">...</span>

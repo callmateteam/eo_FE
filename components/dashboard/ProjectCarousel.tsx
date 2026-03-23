@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useDeleteProject } from "@/hooks/useProjects";
@@ -29,7 +29,32 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
   const deleteProjectMutation = useDeleteProject();
   const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const hasProjects = projects.length > 0;
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  function updateArrows() {
+    const el = scrollerRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+
+    updateArrows();
+    el.addEventListener("scroll", updateArrows, { passive: true });
+
+    const observer = new ResizeObserver(updateArrows);
+    observer.observe(el);
+
+    return () => {
+      el.removeEventListener("scroll", updateArrows);
+      observer.disconnect();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects]);
 
   function scrollByOffset(direction: "left" | "right") {
     const scroller = scrollerRef.current;
@@ -72,32 +97,32 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
         </p>
       ) : null}
 
-      {hasProjects ? (
-        <>
-          <button
-            aria-label="이전 프로젝트"
-            className="absolute left-[-2px] top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-[#8b45ff] bg-[#26262d] text-[#c98fff]"
-            onClick={() => scrollByOffset("left")}
-            type="button"
-          >
-            <Icon className="size-4" name="left" />
-          </button>
-          <button
-            aria-label="다음 프로젝트"
-            className="absolute right-[-2px] top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-[#8b45ff] bg-[#26262d] text-[#c98fff]"
-            onClick={() => scrollByOffset("right")}
-            type="button"
-          >
-            <Icon className="size-4" name="right" />
-          </button>
-        </>
+      {canScrollLeft ? (
+        <button
+          aria-label="이전 프로젝트"
+          className="absolute left-[-2px] top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-[#8b45ff] bg-[#26262d] text-[#c98fff]"
+          onClick={() => scrollByOffset("left")}
+          type="button"
+        >
+          <Icon className="size-4" name="left" />
+        </button>
+      ) : null}
+      {canScrollRight ? (
+        <button
+          aria-label="다음 프로젝트"
+          className="absolute right-[-2px] top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-[#8b45ff] bg-[#26262d] text-[#c98fff]"
+          onClick={() => scrollByOffset("right")}
+          type="button"
+        >
+          <Icon className="size-4" name="right" />
+        </button>
       ) : null}
 
       <div
         ref={scrollerRef}
         className={[
           "flex snap-x snap-mandatory gap-[10px] overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          hasProjects ? "pr-10" : "",
+          projects.length > 0 ? "pr-10" : "",
         ].join(" ")}
       >
         <div className="snap-start">
@@ -109,6 +134,7 @@ export function ProjectCarousel({ projects }: ProjectCarouselProps) {
               characterName={project.character_name}
               className={pendingProjectId === project.id ? "opacity-70" : undefined}
               imageSrc={getProjectCardImageSrc(project.character_image, index)}
+              onClick={() => { void handleEdit(project.id); }}
               onDelete={() => deleteProjectMutation.mutate(project.id)}
               onEdit={() => {
                 void handleEdit(project.id);

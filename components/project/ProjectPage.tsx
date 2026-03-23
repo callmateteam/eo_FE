@@ -62,6 +62,7 @@ export function ProjectPage() {
               characterName={project.character_name}
               className={pendingProjectId === project.id ? "opacity-70" : undefined}
               imageSrc={getProjectCardImageSrc(project.character_image, index)}
+              onClick={() => { void handleEdit(project.id); }}
               onDelete={() => deleteProjectMutation.mutate(project.id)}
               onEdit={() => {
                 void handleEdit(project.id);

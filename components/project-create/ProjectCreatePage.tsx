@@ -67,12 +67,9 @@ function CharacterSelectionCard({
         ))}
       </div>
 
-      <div className="flex items-center justify-between bg-[#2a2a31] px-[10px] py-[12px]">
+      <div className="flex items-center rounded-b-[20px] bg-[#2a2a31] px-[10px] py-[12px]">
         <span className="truncate text-[13px] font-semibold text-white">
           {character.name}
-        </span>
-        <span className="text-[12px] font-medium text-[#9b9ba3]">
-          {character.source === "custom" ? "my" : "name"}
         </span>
       </div>
     </button>

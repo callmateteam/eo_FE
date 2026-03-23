@@ -236,23 +236,21 @@ export function LandingFeatureShowcase() {
           </div>
 
           <div className="mt-16 grid flex-1 min-h-0 grid-cols-[200px_minmax(0,1fr)] items-start gap-[68px] lg:grid-cols-[280px_minmax(0,1fr)]">
-            <div className="relative pt-[8vh] lg:pt-[247px]">
-              <div className="absolute left-[27px] top-[82px] h-[766px] w-[3px] bg-[linear-gradient(180deg,rgba(44,44,49,0.6)_0%,rgba(142,142,147,1)_50%,rgba(44,44,49,0.6)_100%)]" />
-              <div className="flex flex-col gap-[6vh] lg:gap-[120px]">
-                {steps.map((step, index) => (
-                  <div key={step} className="flex items-center gap-6">
-                    <FeatureDot active={activeIndex === index} />
-                    <p
-                      className={cn(
-                        "text-heading-lg m-0 font-medium",
-                        activeIndex === index ? "text-gray-50" : "text-gray-300"
-                      )}
-                    >
-                      {step}
-                    </p>
-                  </div>
-                ))}
-              </div>
+            <div className="relative flex h-full flex-col justify-between py-[8vh] lg:py-[120px]">
+              <div className="absolute left-[27px] top-[10%] bottom-[10%] w-[3px] bg-[linear-gradient(180deg,rgba(44,44,49,0.6)_0%,rgba(142,142,147,1)_50%,rgba(44,44,49,0.6)_100%)]" />
+              {steps.map((step, index) => (
+                <div key={step} className="flex items-center gap-6">
+                  <FeatureDot active={activeIndex === index} />
+                  <p
+                    className={cn(
+                      "text-heading-lg m-0 font-medium",
+                      activeIndex === index ? "text-gray-50" : "text-gray-300"
+                    )}
+                  >
+                    {step}
+                  </p>
+                </div>
+              ))}
             </div>
 
             <div className="flex min-h-0 items-start justify-center pt-[5vh] lg:pt-[164px]">

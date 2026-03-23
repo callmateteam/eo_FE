@@ -14,7 +14,7 @@ export function VideoGenerateProgressModal({
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(0,0,0,0.55)] px-4">
       <div className="w-full max-w-[470px] rounded-[28px] border border-[#2f2f35] bg-[#1f1f24] px-[28px] py-[30px] text-center shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
         <div className="mx-auto flex size-[40px] items-center justify-center rounded-full border border-[#33333b] text-primary-500">
-          <SpinnerDots className="scale-[0.52]" />
+          <SpinnerDots size="md" />
         </div>
         <p className="pt-[22px] text-[30px] font-semibold tracking-[-0.03em] text-white">
           영상 생성을 시작했어요
